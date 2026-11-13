@@ -1,0 +1,52 @@
+@model HomePageModel
+@{
+    ViewData["Canonical"] = "/";
+}
+<section class="hero">
+    <div class="container">
+        <p class="eyebrow">Seçkin araçlar</p>
+        <h1 class="display">Her ayrıntısıyla şeffaf, özenle seçilmiş araçlar.</h1>
+        <p class="lead muted">Stoktaki @Model.StockCount aracın tamamını boya / değişen, Tramer ve donanım bilgisiyle inceleyin.</p>
+        <div class="hero-actions">
+            <a class="btn btn-primary" href="/stok">Stoğu İncele</a>
+            <a class="btn btn-outline" href="/iletisim">Bize Ulaşın</a>
+        </div>
+    </div>
+</section>
+
+@if (Model.Featured.Count > 0)
+{
+    <section class="section">
+        <div class="container">
+            <h2 class="section-title">Öne Çıkanlar</h2>
+            <div class="grid">
+                @foreach (var item in Model.Featured)
+                {
+                    <partial name="_VehicleCard" model="item" />
+                }
+            </div>
+        </div>
+    </section>
+}
+
+<section class="section">
+    <div class="container">
+        <div class="section-head">
+            <h2 class="section-title">Yeni Gelenler</h2>
+            <a href="/stok">Tümünü gör</a>
+        </div>
+        @if (Model.Latest.Count == 0)
+        {
+            <p class="muted">Şu anda yayında araç bulunmuyor.</p>
+        }
+        else
+        {
+            <div class="grid">
+                @foreach (var item in Model.Latest)
+                {
+                    <partial name="_VehicleCard" model="item" />
+                }
+            </div>
+        }
+    </div>
+</section>

@@ -1,0 +1,38 @@
+{
+  "src/components/theme-provider.tsx": {
+    "react-refresh/only-export-components": {
+      "count": 1
+    }
+  },
+  "src/components/ui/badge.tsx": {
+    "react-refresh/only-export-components": {
+      "count": 1
+    }
+  },
+  "src/components/ui/button.tsx": {
+    "react-refresh/only-export-components": {
+      "count": 1
+    }
+  },
+  "src/components/ui/form.tsx": {
+    "react-refresh/only-export-components": {
+      "count": 1
+    }
+  },
+  "src/components/ui/sidebar.tsx": {
+    "react-hooks/purity": {
+      "count": 1
+    },
+    "react-refresh/only-export-components": {
+      "count": 1
+    }
+  },
+  "src/components/ui/sonner.tsx": {
+    "@typescript-eslint/no-explicit-any": {
+      "count": 4
+    },
+    "react-refresh/only-export-components": {
+      "count": 1
+    }
+  }
+}

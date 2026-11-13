@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="FatihTasci.Core/FatihTasci.Core.csproj" />
+  <Project Path="FatihTasci.Data/FatihTasci.Data.csproj" />
+  <Project Path="FatihTasci.Server/FatihTasci.Server.csproj" />
+</Solution>

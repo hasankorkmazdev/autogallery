@@ -1,0 +1,23 @@
+@model int
+@{
+    var notFound = Model == 404;
+    ViewData["Title"] = notFound ? "Sayfa bulunamadı" : "Bir hata oluştu";
+}
+<section class="section">
+    <div class="container narrow center">
+        <p class="eyebrow">@Model</p>
+        <h1 class="display">@ViewData["Title"]</h1>
+        @if (notFound)
+        {
+            <p class="muted">Aradığınız sayfa kaldırılmış ya da adresi değişmiş olabilir. Araç satılmış olabilir; stoğumuzdaki diğer araçlara göz atabilirsiniz.</p>
+        }
+        else
+        {
+            <p class="muted">İsteğiniz işlenirken beklenmeyen bir sorun oluştu. Lütfen biraz sonra tekrar deneyin.</p>
+        }
+        <div class="hero-actions">
+            <a class="btn btn-primary" href="/stok">Stoğa Dön</a>
+            <a class="btn btn-outline" href="/">Ana Sayfa</a>
+        </div>
+    </div>
+</section>

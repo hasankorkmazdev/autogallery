@@ -1,0 +1,149 @@
+using FatihTasci.Core.Entity.Base;
+using FatihTasci.Core.Entity.Catalog;
+using FatihTasci.Core.Enums;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace FatihTasci.Core.Entity.Inventory;
+
+/// <summary>
+/// Araç ilanı. Sihirbaz adım adım doldurduğu için taslakta teknik alanlar boş olabilir;
+/// eksikler yayın kontrol listesinde gösterilir.
+/// </summary>
+[Table(name: "Vehicles", Schema = "Inventory")]
+public class VehicleEntity : BaseAuditableEntity<Guid>
+{
+    /// <summary>
+    /// Sitede "İlan No" olarak görünür. 100000'den başlayan sequence ile veritabanı verir.
+    /// </summary>
+    public int ListingNo { get; set; }
+
+    /// <summary>
+    /// Yıl + marka + model'den otomatik üretilir. Benzersiz değildir, adreste ilan no ile birlikte kullanılır.
+    /// </summary>
+    public string Slug { get; set; }
+
+    public VehicleStatus Status { get; set; } = VehicleStatus.Draft;
+
+    // --- Adım 1: Kimlik
+    public int BrandId { get; set; }
+    public int SeriesId { get; set; }
+    public int CarModelId { get; set; }
+    public string Title { get; set; }
+
+    // --- Adım 2: Teknik
+    public int? Year { get; set; }
+    public int? Kilometer { get; set; }
+    public FuelType? FuelType { get; set; }
+    public TransmissionType? Transmission { get; set; }
+    public BodyType? BodyType { get; set; }
+    public int? EngineCc { get; set; }
+    public int? PowerHp { get; set; }
+    public Drivetrain? Drivetrain { get; set; }
+    public int? BatteryKwh { get; set; }
+    public int? RangeKm { get; set; }
+    public int? ExteriorColorId { get; set; }
+    public string InteriorColor { get; set; }
+
+    // --- Adım 3: Durum
+    public VehicleCondition Condition { get; set; } = VehicleCondition.Used;
+    public bool HasWarranty { get; set; }
+    public DateTime? WarrantyEndDate { get; set; }
+    public bool HeavyDamageRecord { get; set; }
+    public PlateOrigin PlateOrigin { get; set; } = PlateOrigin.Turkish;
+    public bool AcceptsTrade { get; set; }
+
+    /// <summary>
+    /// Boş = Tramer kaydı yok.
+    /// </summary>
+    public decimal? TramerAmount { get; set; }
+
+    // --- Adım 6: Medya
+    public string VideoUrl { get; set; }
+    public string ExpertiseReportPath { get; set; }
+
+    // --- Adım 7: Fiyat ve yayın
+    public decimal? Price { get; set; }
+
+    /// <summary>
+    /// Kapalıysa sitede "Fiyat için arayınız" yazar. Fiyat yine de panelde tutulur.
+    /// </summary>
+    public bool ShowPrice { get; set; } = true;
+
+    /// <summary>
+    /// Sunucuda HtmlSanitizer ile temizlenmiş açıklama.
+    /// </summary>
+    public string Description { get; set; }
+
+    public bool IsFeatured { get; set; }
+    public int FeaturedOrder { get; set; }
+
+    public int ViewCount { get; set; }
+    public DateTime? PublishedAt { get; set; }
+    public DateTime? SoldAt { get; set; }
+
+    public virtual BrandEntity Brand { get; set; }
+    public virtual SeriesEntity Series { get; set; }
+    public virtual CarModelEntity CarModel { get; set; }
+    public virtual ColorEntity ExteriorColor { get; set; }
+
+    public virtual ICollection<VehicleBodyPartEntity> BodyParts { get; set; } = new List<VehicleBodyPartEntity>();
+    public virtual ICollection<VehicleFeatureEntity> Features { get; set; } = new List<VehicleFeatureEntity>();
+    public virtual ICollection<VehicleMediaEntity> Media { get; set; } = new List<VehicleMediaEntity>();
+}
+
+/// <summary>
+/// Boya / değişen şemasında bir parçanın durumu. (VehicleId, Part) benzersizdir.
+/// </summary>
+[Table(name: "VehicleBodyParts", Schema = "Inventory")]
+public class VehicleBodyPartEntity : BaseEntity<int>
+{
+    public Guid VehicleId { get; set; }
+    public BodyPart Part { get; set; }
+    public BodyPartState State { get; set; } = BodyPartState.Original;
+    public string Note { get; set; }
+
+    public virtual VehicleEntity Vehicle { get; set; }
+}
+
+/// <summary>
+/// Donanım listesi (panelden yönetilir).
+/// </summary>
+[Table(name: "Features", Schema = "Inventory")]
+public class FeatureEntity : BaseEntity<int>
+{
+    public FeatureCategory Category { get; set; }
+    public string Name { get; set; }
+    public int SortOrder { get; set; }
+}
+
+[Table(name: "VehicleFeatures", Schema = "Inventory")]
+public class VehicleFeatureEntity
+{
+    public Guid VehicleId { get; set; }
+    public int FeatureId { get; set; }
+
+    public virtual VehicleEntity Vehicle { get; set; }
+    public virtual FeatureEntity Feature { get; set; }
+}
+
+/// <summary>
+/// Araç fotoğrafı. Orijinal dosya saklanır, ayrıca 480 / 1280 / 2400 px WebP varyantları üretilir.
+/// Yollar Storage kökünce görelidir ve sitede /media altında sunulur.
+/// </summary>
+[Table(name: "VehicleMedia", Schema = "Inventory")]
+public class VehicleMediaEntity : BaseEntity<Guid>
+{
+    public Guid VehicleId { get; set; }
+    public string OriginalPath { get; set; }
+    public string SmallPath { get; set; }
+    public string MediumPath { get; set; }
+    public string LargePath { get; set; }
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public int SortOrder { get; set; }
+    public bool IsCover { get; set; }
+    public string AltText { get; set; }
+    public DateTime CreateDate { get; set; } = DateTime.Now;
+
+    public virtual VehicleEntity Vehicle { get; set; }
+}

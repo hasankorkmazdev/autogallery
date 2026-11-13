@@ -1,0 +1,27 @@
+@model VehicleCardModel
+@{
+    var badge = SiteFormat.StatusBadge(Model.Status);
+}
+<article class="card">
+    <a class="card-link" href="@Model.Url">
+        <div class="card-media">
+            @if (Model.CoverUrl != null)
+            {
+                <img src="@Model.CoverUrl" alt="@Model.CoverAlt" loading="lazy" width="1280" height="853" />
+            }
+            else
+            {
+                <div class="card-placeholder">Fotoğraf yok</div>
+            }
+            @if (badge != null)
+            {
+                <span class="badge badge-@Model.Status.ToString().ToLowerInvariant()">@badge</span>
+            }
+        </div>
+        <div class="card-body">
+            <h3 class="card-title">@Model.Title</h3>
+            <p class="card-meta">@Model.Year · @SiteFormat.Km(Model.Kilometer) · @Model.FuelName · @Model.TransmissionName</p>
+            <p class="card-price">@SiteFormat.Price(Model.Price, Model.ShowPrice)</p>
+        </div>
+    </a>
+</article>

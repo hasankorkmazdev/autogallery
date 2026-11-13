@@ -1,0 +1,81 @@
+@model CreateLeadRequestModel
+@inject FatihTasci.Core.Service.Domains.Abstracts.ISiteSettingService SettingService
+@{
+    var settings = await SettingService.GetAsync();
+    var tel = SiteFormat.TelLink(settings.Phone);
+    var whatsApp = SiteFormat.WhatsAppLink(settings.WhatsApp, "Merhaba, bilgi almak istiyorum.");
+    var hasMap = !string.IsNullOrWhiteSpace(settings.Latitude) && !string.IsNullOrWhiteSpace(settings.Longitude);
+    ViewData["Title"] = "İletişim";
+    ViewData["Canonical"] = "/iletisim";
+}
+<section class="section">
+    <div class="container">
+        <h1 class="display">İletişim</h1>
+        <div class="contact-grid">
+            <div class="panel">
+                <h2 class="panel-title">Bize ulaşın</h2>
+                @if (!string.IsNullOrWhiteSpace(settings.Address))
+                {
+                    <p>@settings.Address</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(settings.WorkingHours))
+                {
+                    <p class="muted">@settings.WorkingHours</p>
+                }
+                <div class="contact-actions">
+                    @if (tel != null)
+                    {
+                        <a class="btn btn-outline" href="@tel">Ara: @settings.Phone</a>
+                    }
+                    @if (whatsApp != null)
+                    {
+                        <a class="btn btn-primary" href="@whatsApp" target="_blank" rel="noopener">WhatsApp</a>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(settings.Email))
+                    {
+                        <a class="btn btn-outline" href="mailto:@settings.Email">@settings.Email</a>
+                    }
+                </div>
+                @if (hasMap)
+                {
+                    <p><a href="https://www.google.com/maps?q=@settings.Latitude,@settings.Longitude" target="_blank" rel="noopener">Haritada göster</a></p>
+                }
+            </div>
+
+            <div class="panel">
+                <h2 class="panel-title">Mesaj gönderin</h2>
+                @if (TempData["FormSuccess"] is string success)
+                {
+                    <div class="alert alert-success">@success</div>
+                }
+                <form method="post" action="/iletisim" class="form" autocomplete="off" novalidate>
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="alert alert-error"></div>
+                    <div class="hp" aria-hidden="true"><label>Web sitesi<input type="text" name="Website" tabindex="-1" autocomplete="off" /></label></div>
+                    <label>Ad soyad
+                        <input asp-for="FullName" maxlength="100" autocomplete="off" />
+                        <span asp-validation-for="FullName" class="field-error"></span>
+                    </label>
+                    <label>Telefon
+                        <input asp-for="Phone" type="tel" maxlength="20" autocomplete="off" />
+                        <span asp-validation-for="Phone" class="field-error"></span>
+                    </label>
+                    <label>E-posta (isteğe bağlı)
+                        <input asp-for="Email" type="email" maxlength="150" autocomplete="off" />
+                        <span asp-validation-for="Email" class="field-error"></span>
+                    </label>
+                    <label>Mesajınız
+                        <textarea asp-for="Message" rows="5" maxlength="2000"></textarea>
+                        <span asp-validation-for="Message" class="field-error"></span>
+                    </label>
+                    <label class="checkbox">
+                        <input type="checkbox" name="KvkkConsent" value="true" @(Model.KvkkConsent ? "checked" : null) />
+                        <span><a href="/kvkk" target="_blank">Aydınlatma metnini</a> okudum, kişisel verilerimin işlenmesine onay veriyorum.</span>
+                    </label>
+                    <span asp-validation-for="KvkkConsent" class="field-error"></span>
+                    <button type="submit" class="btn btn-primary">Gönder</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>

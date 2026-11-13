@@ -1,0 +1,219 @@
+@model PublicVehicleDetailModel
+@inject FatihTasci.Core.Service.Domains.Abstracts.ISiteSettingService SettingService
+@{
+    var settings = await SettingService.GetAsync();
+    var price = SiteFormat.Price(Model.Price, Model.ShowPrice);
+    var badge = SiteFormat.StatusBadge(Model.Status);
+    var isSold = Model.Status == VehicleStatus.Sold;
+    var whatsAppMessage = $"Merhaba, {Model.ListingNo} numaralı ilan ({Model.Title}) hakkında bilgi almak istiyorum.";
+    var whatsApp = SiteFormat.WhatsAppLink(settings.WhatsApp, whatsAppMessage);
+    var tel = SiteFormat.TelLink(settings.Phone);
+    var cover = Model.Images.FirstOrDefault();
+
+    ViewData["Title"] = Model.Title;
+    ViewData["Description"] = $"{Model.Title} — {string.Join(" · ", Model.Summary)}. {(isSold ? "Satıldı." : price)}";
+    ViewData["Canonical"] = Model.Url;
+    ViewData["WhatsAppMessage"] = whatsAppMessage;
+    if (cover != null)
+    {
+        ViewData["OgImage"] = cover.MediumUrl;
+    }
+}
+
+<section class="section vehicle">
+    <div class="container">
+        <nav class="breadcrumb" aria-label="Konum">
+            <a href="/">Ana Sayfa</a> / <a href="/stok">Stok</a> /
+            <a href="/stok/@Model.BrandSlug">@Model.BrandName</a> /
+            <a href="/stok/@Model.BrandSlug/@Model.SeriesSlug">@Model.SeriesName</a>
+        </nav>
+
+        <div class="vehicle-head">
+            <div>
+                <h1 class="display">@Model.Title</h1>
+                <p class="muted">İlan No: @Model.ListingNo</p>
+            </div>
+            <div class="vehicle-price">
+                @if (badge != null)
+                {
+                    <span class="badge badge-@Model.Status.ToString().ToLowerInvariant()">@badge</span>
+                }
+                @if (!isSold)
+                {
+                    <div class="price">@price</div>
+                }
+            </div>
+        </div>
+
+        @if (isSold)
+        {
+            <div class="notice">Bu araç satıldı. Benzer araçlarımıza aşağıdan göz atabilirsiniz.</div>
+        }
+
+        <div class="gallery" data-gallery>
+            @if (cover == null)
+            {
+                <div class="gallery-main card-placeholder">Fotoğraf yok</div>
+            }
+            else
+            {
+                <a class="gallery-main" href="@cover.LargeUrl" target="_blank" rel="noopener" data-gallery-main>
+                    <img src="@cover.MediumUrl" alt="@cover.Alt" width="@cover.Width" height="@cover.Height" data-gallery-image />
+                </a>
+                <div class="gallery-thumbs">
+                    @for (var i = 0; i < Model.Images.Count; i++)
+                    {
+                        var image = Model.Images[i];
+                        <button type="button" class="thumb @(i == 0 ? "active" : null)" data-medium="@image.MediumUrl" data-large="@image.LargeUrl" aria-label="Fotoğraf @(i + 1)">
+                            <img src="@image.SmallUrl" alt="" loading="lazy" />
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+
+        <ul class="summary-bar">
+            @foreach (var item in Model.Summary)
+            {
+                <li>@item</li>
+            }
+        </ul>
+
+        <div class="vehicle-grid">
+            <div class="vehicle-main">
+                <section class="panel">
+                    <h2 class="panel-title">Teknik Özellikler</h2>
+                    <dl class="specs">
+                        @foreach (var spec in Model.Specs)
+                        {
+                            <div><dt>@spec.Label</dt><dd>@spec.Value</dd></div>
+                        }
+                    </dl>
+                </section>
+
+                <section class="panel">
+                    <h2 class="panel-title">Boya, Değişen ve Tramer</h2>
+                    <partial name="_DamageDiagram" model="Model.BodyParts" />
+                    <dl class="specs specs-inline">
+                        <div><dt>Tramer</dt><dd>@(Model.TramerAmount.HasValue ? SiteFormat.Price(Model.TramerAmount, true) : "Kayıt yok")</dd></div>
+                        <div><dt>Ağır hasar kaydı</dt><dd>@(Model.HeavyDamageRecord ? "Var" : "Yok")</dd></div>
+                    </dl>
+                    @if (Model.ExpertiseReportUrl != null)
+                    {
+                        <a class="btn btn-outline" href="@Model.ExpertiseReportUrl" target="_blank" rel="noopener">Ekspertiz raporunu indir (PDF)</a>
+                    }
+                </section>
+
+                @if (Model.Features.Count > 0)
+                {
+                    <section class="panel">
+                        <h2 class="panel-title">Donanım</h2>
+                        <div class="features">
+                            @foreach (var group in Model.Features)
+                            {
+                                <div>
+                                    <h3>@group.CategoryName</h3>
+                                    <ul>
+                                        @foreach (var feature in group.Features)
+                                        {
+                                            <li>@feature</li>
+                                        }
+                                    </ul>
+                                </div>
+                            }
+                        </div>
+                    </section>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.Description))
+                {
+                    <section class="panel">
+                        <h2 class="panel-title">Açıklama</h2>
+                        @* Açıklama kayıt sırasında HtmlSanitizer ile temizlenir (VehicleService.SanitizeDescription) *@
+                        <div class="prose description">@Html.Raw(Model.Description)</div>
+                    </section>
+                }
+
+                @if (Model.VideoEmbedUrl != null)
+                {
+                    <section class="panel">
+                        <h2 class="panel-title">Video</h2>
+                        <div class="video">
+                            <iframe src="@Model.VideoEmbedUrl" title="@Model.Title videosu" loading="lazy" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe>
+                        </div>
+                    </section>
+                }
+                else if (Model.VideoUrl != null)
+                {
+                    <p><a href="@Model.VideoUrl" target="_blank" rel="noopener">Aracın videosunu izleyin</a></p>
+                }
+            </div>
+
+            <aside class="vehicle-aside">
+                <div class="panel sticky">
+                    @if (!isSold)
+                    {
+                        <div class="price">@price</div>
+                    }
+                    <div class="contact-actions">
+                        @if (whatsApp != null)
+                        {
+                            <a class="btn btn-primary" href="@whatsApp" target="_blank" rel="noopener">WhatsApp ile yaz</a>
+                        }
+                        @if (tel != null)
+                        {
+                            <a class="btn btn-outline" href="@tel">Ara: @settings.Phone</a>
+                        }
+                    </div>
+
+                    @if (!isSold)
+                    {
+                        <div id="talep">
+                            @if (TempData["FormSuccess"] is string success)
+                            {
+                                <div class="alert alert-success">@success</div>
+                            }
+                            @if (TempData["FormError"] is string error)
+                            {
+                                <div class="alert alert-error">@error</div>
+                            }
+                            <h2 class="panel-title">Bilgi al / Test sürüşü</h2>
+                            <form method="post" action="/talep" class="form" autocomplete="off">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="ListingNo" value="@Model.ListingNo" />
+                                <input type="hidden" name="returnUrl" value="@Model.Url" />
+                                <div class="hp" aria-hidden="true"><label>Web sitesi<input type="text" name="Website" tabindex="-1" autocomplete="off" /></label></div>
+                                <label>Talep türü
+                                    <select name="Type" data-lead-type>
+                                        <option value="@((int)LeadType.Information)">Bilgi almak istiyorum</option>
+                                        <option value="@((int)LeadType.TestDrive)">Test sürüşü talep ediyorum</option>
+                                    </select>
+                                </label>
+                                <label>Ad soyad<input type="text" name="FullName" required maxlength="100" autocomplete="off" /></label>
+                                <label>Telefon<input type="tel" name="Phone" required maxlength="20" autocomplete="off" /></label>
+                                <label>E-posta (isteğe bağlı)<input type="email" name="Email" maxlength="150" autocomplete="off" /></label>
+                                <label data-preferred-date hidden>Tercih ettiğiniz tarih<input type="date" name="PreferredDate" min="@DateTime.Today.ToString("yyyy-MM-dd")" /></label>
+                                <label>Mesajınız (isteğe bağlı)<textarea name="Message" rows="3" maxlength="2000"></textarea></label>
+                                <label class="checkbox"><input type="checkbox" name="KvkkConsent" value="true" required /> <span><a href="/kvkk" target="_blank">Aydınlatma metnini</a> okudum, kişisel verilerimin işlenmesine onay veriyorum.</span></label>
+                                <button type="submit" class="btn btn-primary">Gönder</button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            </aside>
+        </div>
+
+        @if (Model.Similar.Count > 0)
+        {
+            <section class="section-tight">
+                <h2 class="section-title">Benzer Araçlar</h2>
+                <div class="grid">
+                    @foreach (var item in Model.Similar)
+                    {
+                        <partial name="_VehicleCard" model="item" />
+                    }
+                </div>
+            </section>
+        }
+    </div>
+</section>

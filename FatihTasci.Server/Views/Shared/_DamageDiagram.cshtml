@@ -1,0 +1,62 @@
+@model List<BodyPartViewModel>
+@*
+    Boya / değişen şeması (üstten görünüm, ön üstte). Parça yerleşimi panelin
+    FatihTasci.Admin/src/components/damage-diagram/parts.ts dosyasıyla aynıdır.
+*@
+@{
+    var shapes = new Dictionary<BodyPart, (int X, int Y, int W, int H)>
+    {
+        [BodyPart.FrontBumper] = (60, 8, 120, 26),
+        [BodyPart.Hood] = (60, 40, 120, 80),
+        [BodyPart.Roof] = (60, 126, 120, 180),
+        [BodyPart.TrunkLid] = (60, 312, 120, 80),
+        [BodyPart.RearBumper] = (60, 398, 120, 26),
+        [BodyPart.LeftFrontFender] = (14, 40, 40, 80),
+        [BodyPart.LeftFrontDoor] = (14, 126, 40, 87),
+        [BodyPart.LeftRearDoor] = (14, 219, 40, 87),
+        [BodyPart.LeftRearFender] = (14, 312, 40, 80),
+        [BodyPart.RightFrontFender] = (186, 40, 40, 80),
+        [BodyPart.RightFrontDoor] = (186, 126, 40, 87),
+        [BodyPart.RightRearDoor] = (186, 219, 40, 87),
+        [BodyPart.RightRearFender] = (186, 312, 40, 80)
+    };
+}
+<div class="damage">
+    <svg class="damage-svg" viewBox="0 0 240 432" role="img" aria-label="Boya ve değişen şeması">
+        @foreach (var part in Model)
+        {
+            var s = shapes[part.Part];
+            var tooltip = string.IsNullOrEmpty(part.Note) ? $"{part.PartName}: {part.StateName}" : $"{part.PartName}: {part.StateName} ({part.Note})";
+            <rect class="part state-@((int)part.State)" x="@s.X" y="@s.Y" width="@s.W" height="@s.H" rx="6" tabindex="0" data-label="@tooltip">
+                <title>@tooltip</title>
+            </rect>
+        }
+        <text x="120" y="22" class="damage-axis">ÖN</text>
+        <text x="120" y="415" class="damage-axis">ARKA</text>
+    </svg>
+    <div class="damage-side">
+        <ul class="legend">
+            <li><span class="swatch state-0"></span>Orijinal</li>
+            <li><span class="swatch state-1"></span>Lokal Boyalı</li>
+            <li><span class="swatch state-2"></span>Boyalı</li>
+            <li><span class="swatch state-3"></span>Değişen</li>
+        </ul>
+        <p class="damage-hint muted" data-damage-hint>Durumunu görmek için bir parçanın üzerine gelin ya da dokunun.</p>
+        @{
+            var changed = Model.Where(x => x.State != BodyPartState.Original).ToList();
+        }
+        @if (changed.Count == 0)
+        {
+            <p>Tüm parçalar orijinal.</p>
+        }
+        else
+        {
+            <ul class="damage-list">
+                @foreach (var part in changed)
+                {
+                    <li><span class="swatch state-@((int)part.State)"></span>@part.PartName: <strong>@part.StateName</strong>@(string.IsNullOrEmpty(part.Note) ? "" : $" — {part.Note}")</li>
+                }
+            </ul>
+        }
+    </div>
+</div>

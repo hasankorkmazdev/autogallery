@@ -1,0 +1,110 @@
+@inject FatihTasci.Core.Service.Domains.Abstracts.ISiteSettingService SettingService
+@{
+    var settings = await SettingService.GetAsync();
+    var galleryName = string.IsNullOrWhiteSpace(settings.GalleryName) ? "Oto Galeri" : settings.GalleryName;
+    var pageTitle = ViewData["Title"] as string;
+    var fullTitle = string.IsNullOrEmpty(pageTitle) ? galleryName : $"{pageTitle} | {galleryName}";
+    var description = ViewData["Description"] as string ?? $"{galleryName} — seçkin ikinci el ve sıfır araçlar.";
+    var canonical = ViewData["Canonical"] as string;
+    var whatsApp = SiteFormat.WhatsAppLink(settings.WhatsApp, ViewData["WhatsAppMessage"] as string ?? "Merhaba, araçlarınız hakkında bilgi almak istiyorum.");
+    var tel = SiteFormat.TelLink(settings.Phone);
+    var path = Context.Request.Path.Value ?? "/";
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@fullTitle</title>
+    <meta name="description" content="@description" />
+    @if (!string.IsNullOrEmpty(canonical))
+    {
+        <link rel="canonical" href="@($"{Context.Request.Scheme}://{Context.Request.Host}{canonical}")" />
+    }
+    <meta property="og:title" content="@fullTitle" />
+    <meta property="og:description" content="@description" />
+    @if (ViewData["OgImage"] is string ogImage)
+    {
+        <meta property="og:image" content="@($"{Context.Request.Scheme}://{Context.Request.Host}{ogImage}")" />
+    }
+    <meta name="theme-color" content="#0B0B0C" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Head", required: false)
+</head>
+<body>
+    <a class="skip-link" href="#main">İçeriğe geç</a>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a class="brand" href="/">@galleryName</a>
+            <nav class="main-nav" aria-label="Ana menü">
+                <a href="/" class="@(path == "/" ? "active" : null)">Ana Sayfa</a>
+                <a href="/stok" class="@(path.StartsWith("/stok") || path.StartsWith("/arac") ? "active" : null)">Stok</a>
+                <a href="/iletisim" class="@(path.StartsWith("/iletisim") ? "active" : null)">İletişim</a>
+            </nav>
+            @if (tel != null)
+            {
+                <a class="header-phone" href="@tel">@settings.Phone</a>
+            }
+        </div>
+    </header>
+
+    <main id="main">
+        @RenderBody()
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-grid">
+            <div>
+                <div class="brand">@galleryName</div>
+                @if (!string.IsNullOrWhiteSpace(settings.Address))
+                {
+                    <p class="muted">@settings.Address</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(settings.WorkingHours))
+                {
+                    <p class="muted">@settings.WorkingHours</p>
+                }
+            </div>
+            <div>
+                <h2 class="footer-title">İletişim</h2>
+                @if (tel != null)
+                {
+                    <p><a href="@tel">@settings.Phone</a></p>
+                }
+                @if (!string.IsNullOrWhiteSpace(settings.Email))
+                {
+                    <p><a href="mailto:@settings.Email">@settings.Email</a></p>
+                }
+                @if (whatsApp != null)
+                {
+                    <p><a href="@whatsApp" target="_blank" rel="noopener">WhatsApp</a></p>
+                }
+            </div>
+            <div>
+                <h2 class="footer-title">Bağlantılar</h2>
+                <p><a href="/stok">Stoktaki Araçlar</a></p>
+                <p><a href="/iletisim">İletişim</a></p>
+                <p><a href="/kvkk">KVKK Aydınlatma Metni</a></p>
+            </div>
+        </div>
+        <div class="container footer-bottom muted">© @DateTime.Now.Year @galleryName</div>
+    </footer>
+
+    @if (tel != null || whatsApp != null)
+    {
+        <div class="mobile-bar">
+            @if (tel != null)
+            {
+                <a class="btn btn-outline" href="@tel">Ara</a>
+            }
+            @if (whatsApp != null)
+            {
+                <a class="btn btn-primary" href="@whatsApp" target="_blank" rel="noopener">WhatsApp</a>
+            }
+        </div>
+    }
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
