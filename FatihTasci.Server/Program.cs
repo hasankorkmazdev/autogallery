@@ -9,6 +9,7 @@ using FatihTasci.Core.Providers;
 using FatihTasci.Core.Service.Domains;
 using FatihTasci.Core.Service.Domains.Abstracts;
 using FatihTasci.Data.Context;
+using FatihTasci.Server.Helpers;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -48,6 +49,10 @@ public class Program
         builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = MaxUploadBytes);
 
         ConfigureServices(builder.Services, builder.Configuration);
+
+        // Visual Studio "Panel" profili: sunucuyla birlikte Vite'ı da başlatır (yalnız geliştirmede).
+        if (builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("DevTools:StartViteDevServer"))
+            builder.Services.AddHostedService<ViteDevServer>();
 
         WebApplication app;
         try
@@ -150,6 +155,29 @@ public class Program
                     RoleClaimType = ClaimTypes.Role,
                     NameClaimType = ClaimTypes.Name
                 };
+                options.Events = new JwtBearerEvents
+                {
+                    // Pasife alınan ya da rolü değişen kullanıcının eski token'ı reddedilir (panel girişe döner).
+                    OnTokenValidated = async context =>
+                    {
+                        var principal = context.Principal;
+                        var userIdValue = principal?.FindFirst(HttpContextCurrentUserProvider.UserIdClaim)?.Value;
+                        var role = principal?.FindFirst(ClaimTypes.Role)?.Value;
+                        var accountService = context.HttpContext.RequestServices.GetRequiredService<IAccountService>();
+                        if (!Guid.TryParse(userIdValue, out var userId) || !await accountService.IsSessionValidAsync(userId, role))
+                            context.Fail("Oturum geçersiz.");
+                    },
+                    // Rol yetmediğinde panel toast'ında gösterilecek mesaj, ServiceResultModel zarfıyla
+                    OnForbidden = async context =>
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        await context.Response.WriteAsJsonAsync(new ServiceResultModel
+                        {
+                            Code = StatusCodes.Status403Forbidden,
+                            Message = "Bu işlem için yetkiniz yok."
+                        });
+                    }
+                };
             });
         services.AddAuthorization();
     }
@@ -180,13 +208,16 @@ public class Program
     private static void AddBusinessServices(IServiceCollection services)
     {
         services.AddScoped<IAccountService, AccountService>();
+        services.AddScoped<IUserService, UserService>();
         services.AddScoped<ICatalogService, CatalogService>();
         services.AddScoped<IFeatureService, FeatureService>();
         services.AddScoped<IVehicleService, VehicleService>();
         services.AddScoped<IMediaService, MediaService>();
         services.AddScoped<ILeadService, LeadService>();
         services.AddScoped<ISiteSettingService, SiteSettingService>();
+        services.AddScoped<IShowroomService, ShowroomService>();
         services.AddScoped<IPublicVehicleService, PublicVehicleService>();
+        services.AddSingleton<IMediaRegenerationRunner, MediaRegenerationRunner>();
     }
 
     private static void ConfigureMiddleware(WebApplication app)

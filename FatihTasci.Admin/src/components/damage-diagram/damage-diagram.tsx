@@ -1,4 +1,14 @@
-import { PART_SHAPES, STATE_COLORS } from "./parts";
+import {
+  BODY_PATHS,
+  GLASS_PATHS,
+  LAMP_PATHS,
+  PART_SHAPES,
+  STATE_COLORS,
+  STATE_TEXT_COLORS,
+  VIEW_BOX,
+  WHEEL_RADIUS,
+  WHEELS,
+} from "./parts";
 
 interface DamageDiagramProps {
   states: Record<number, number>;
@@ -7,26 +17,34 @@ interface DamageDiagramProps {
   onPartClick?: (part: number) => void;
 }
 
-// Üstten görünüm araç şeması. Parçaya tıklandıkça durum sırayla değişir (sihirbaz adım 4).
+// Açılmış araç şeması (ekspertiz raporlarındaki gibi). Parçaya tıklandıkça durum sırayla değişir (sihirbaz adım 4).
+// Orijinal olmayan parçaların üstünde durum yazar (Lokal Boyalı, Boyalı, Değişen).
 export function DamageDiagram({ states, partLabels, stateLabels, onPartClick }: DamageDiagramProps) {
+  const parts = Object.entries(PART_SHAPES).map(([key, shape]) => ({ part: Number(key), shape }));
+
   return (
-    <svg viewBox="0 0 240 432" role="group" aria-label="Boya ve değişen şeması" className="w-full max-w-[240px] mx-auto">
-      {Object.entries(PART_SHAPES).map(([key, shape]) => {
-        const part = Number(key);
+    <svg viewBox={VIEW_BOX} role="group" aria-label="Boya ve değişen şeması" className="w-full max-w-[320px] mx-auto">
+      <g className="pointer-events-none" fill="currentColor">
+        {BODY_PATHS.map((d) => (
+          <path key={d} d={d} opacity={0.08} />
+        ))}
+        {GLASS_PATHS.map((d) => (
+          <path key={d} d={d} opacity={0.3} />
+        ))}
+      </g>
+
+      {parts.map(({ part, shape }) => {
         const state = states[part] ?? 0;
         const label = `${partLabels[part] ?? part}: ${stateLabels[state] ?? state}`;
         return (
-          <rect
+          <path
             key={part}
-            x={shape.x}
-            y={shape.y}
-            width={shape.w}
-            height={shape.h}
-            rx={6}
+            d={shape.d}
             fill={STATE_COLORS[state]}
             stroke="currentColor"
-            strokeOpacity={0.25}
-            strokeWidth={2}
+            strokeOpacity={0.35}
+            strokeWidth={1.5}
+            strokeLinejoin="round"
             role="button"
             tabIndex={0}
             aria-label={label}
@@ -39,15 +57,48 @@ export function DamageDiagram({ states, partLabels, stateLabels, onPartClick }: 
               }
             }}>
             <title>{label}</title>
-          </rect>
+          </path>
         );
       })}
-      <text x={120} y={22} textAnchor="middle" fontSize={10} className="fill-muted-foreground pointer-events-none">
-        ÖN
-      </text>
-      <text x={120} y={415} textAnchor="middle" fontSize={10} className="fill-muted-foreground pointer-events-none">
-        ARKA
-      </text>
+
+      <g className="pointer-events-none" fill="currentColor">
+        {LAMP_PATHS.map((d) => (
+          <path key={d} d={d} opacity={0.35} />
+        ))}
+        {WHEELS.map((wheel) => (
+          <g key={`${wheel.cx}-${wheel.cy}`}>
+            <circle cx={wheel.cx} cy={wheel.cy} r={WHEEL_RADIUS} opacity={0.6} className="stroke-background" strokeWidth={3} />
+            <circle cx={wheel.cx} cy={wheel.cy} r={WHEEL_RADIUS / 2.5} className="fill-background" opacity={0.5} />
+          </g>
+        ))}
+      </g>
+
+      <g className="pointer-events-none select-none" fontSize={10} fontWeight={600} textAnchor="middle" dominantBaseline="central">
+        {parts
+          .filter(({ part }) => (states[part] ?? 0) !== 0)
+          .map(({ part, shape }) => {
+            const state = states[part];
+            return (
+              <text
+                key={part}
+                x={shape.labelX}
+                y={shape.labelY}
+                fill={STATE_TEXT_COLORS[state]}
+                transform={shape.vertical ? `rotate(-90 ${shape.labelX} ${shape.labelY})` : undefined}>
+                {stateLabels[state] ?? state}
+              </text>
+            );
+          })}
+      </g>
+
+      <g className="fill-muted-foreground pointer-events-none" fontSize={10} textAnchor="end" dominantBaseline="central" letterSpacing="0.15em">
+        <text x={106} y={37}>
+          ÖN
+        </text>
+        <text x={106} y={375}>
+          ARKA
+        </text>
+      </g>
     </svg>
   );
 }

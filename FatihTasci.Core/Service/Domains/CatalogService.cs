@@ -14,7 +14,7 @@ namespace FatihTasci.Core.Service.Domains;
 
 /// <summary>
 /// Marka → Seri → Model kataloğu ve renkler. Slug'lar addan otomatik üretilir;
-/// ad değişince eski slug SlugRedirect'e yazılır (PROJE_DOKUMANI §3.8).
+/// ad değişince eski slug SlugRedirect'e yazılır.
 /// </summary>
 public class CatalogService : DomainService, ICatalogService
 {
@@ -47,6 +47,7 @@ public class CatalogService : DomainService, ICatalogService
                 Id = x.Id,
                 Name = x.Name,
                 Slug = x.Slug,
+                LogoUrl = x.LogoPath,
                 SortOrder = x.SortOrder,
                 IsActive = x.IsActive,
                 SeriesCount = x.Series.Count(s => !s.IsDelete)
@@ -336,6 +337,7 @@ public class CatalogService : DomainService, ICatalogService
         Id = x.Id,
         Name = x.Name,
         Slug = x.Slug,
+        LogoUrl = x.LogoPath,
         SortOrder = x.SortOrder,
         IsActive = x.IsActive
     };

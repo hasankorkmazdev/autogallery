@@ -251,6 +251,79 @@ namespace FatihTasci.Data.Migrations
                     b.ToTable("Series", "Catalog");
                 });
 
+            modelBuilder.Entity("FatihTasci.Core.Entity.Common.ShowroomSceneEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnOrder(0);
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnOrder(1000);
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnOrder(1003);
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnOrder(1);
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("bit")
+                        .HasColumnOrder(2);
+
+                    b.Property<string>("LargePath")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<DateTime?>("LastDeleteDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnOrder(1002);
+
+                    b.Property<Guid?>("LastDeletedBy")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnOrder(1004);
+
+                    b.Property<DateTime?>("LastUpdateDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnOrder(1001);
+
+                    b.Property<Guid?>("LastUpdatedBy")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnOrder(1005);
+
+                    b.Property<string>("MediumPath")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("OriginalPath")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Tag")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SortOrder");
+
+                    b.ToTable("ShowroomScenes", "Common");
+                });
+
             modelBuilder.Entity("FatihTasci.Core.Entity.Common.SiteSettingEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -616,6 +689,9 @@ namespace FatihTasci.Data.Migrations
 
                     b.Property<int>("BrandId")
                         .HasColumnType("int");
+
+                    b.Property<decimal?>("CampaignPrice")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("CarModelId")
                         .HasColumnType("int");

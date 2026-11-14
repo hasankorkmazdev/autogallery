@@ -89,6 +89,7 @@ public class VehicleService : DomainService, IVehicleService
                 x.Year,
                 x.Kilometer,
                 x.Price,
+                x.CampaignPrice,
                 x.ShowPrice,
                 x.Status,
                 x.IsFeatured,
@@ -117,6 +118,7 @@ public class VehicleService : DomainService, IVehicleService
                 Year = x.Year,
                 Kilometer = x.Kilometer,
                 Price = x.Price,
+                CampaignPrice = x.CampaignPrice,
                 ShowPrice = x.ShowPrice,
                 Status = x.Status,
                 IsFeatured = x.IsFeatured,
@@ -333,6 +335,7 @@ public class VehicleService : DomainService, IVehicleService
             return Result<VehicleDetailModel>(null, "Yayındaki bir aracın fiyatı boş ya da 0 olamaz.", 400);
 
         vehicle.Price = request.Price;
+        vehicle.CampaignPrice = request.CampaignPrice;
         vehicle.ShowPrice = request.ShowPrice;
         vehicle.Description = SanitizeDescription(request.Description);
         vehicle.IsFeatured = request.IsFeatured;
@@ -557,6 +560,7 @@ public class VehicleService : DomainService, IVehicleService
             VideoUrl = x.VideoUrl,
             ExpertiseReportUrl = _storage.ToUrl(x.ExpertiseReportPath),
             Price = x.Price,
+            CampaignPrice = x.CampaignPrice,
             ShowPrice = x.ShowPrice,
             Description = x.Description,
             IsFeatured = x.IsFeatured,

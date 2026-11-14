@@ -19,6 +19,7 @@ public interface IMediaStorage
     void DeletePublic(string relativePath);
     void DeletePrivate(string relativePath);
     string GetFullPublicPath(string relativePath);
+    string GetFullPrivatePath(string relativePath);
 
     /// <summary>
     /// Göreli public yolu site adresine çevirir: vehicles/x.webp -> /media/vehicles/x.webp
@@ -56,6 +57,8 @@ public class LocalMediaStorage : IMediaStorage
     public void DeletePrivate(string relativePath) => Delete(PrivateRoot, relativePath);
 
     public string GetFullPublicPath(string relativePath) => Resolve(PublicRoot, relativePath);
+
+    public string GetFullPrivatePath(string relativePath) => Resolve(PrivateRoot, relativePath);
 
     public string ToUrl(string relativePath)
     {

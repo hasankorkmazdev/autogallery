@@ -51,8 +51,21 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
         {
             Featured = await ToCardsAsync(stock.Where(x => x.IsFeatured).OrderBy(x => x.FeaturedOrder).ThenByDescending(x => x.PublishedAt).Take(6)),
             Latest = await ToCardsAsync(stock.OrderByDescending(x => x.PublishedAt).Take(6)),
-            StockCount = await stock.CountAsync()
+            StockCount = await stock.CountAsync(),
+            Brands = await GetStockBrandsAsync(stock)
         };
+    }
+
+    /// <summary>
+    /// Stokta aracı olan markalar, araç sayıları ve logolarıyla
+    /// </summary>
+    private static Task<List<FilterOptionModel>> GetStockBrandsAsync(IQueryable<VehicleEntity> stock)
+    {
+        return stock
+            .GroupBy(x => new { x.Brand.Slug, x.Brand.Name, x.Brand.LogoPath, x.Brand.SortOrder })
+            .OrderBy(g => g.Key.SortOrder).ThenBy(g => g.Key.Name)
+            .Select(g => new FilterOptionModel { Value = g.Key.Slug, Label = g.Key.Name, LogoUrl = g.Key.LogoPath, Count = g.Count() })
+            .ToListAsync();
     }
 
     public async Task<CatalogPathResult> ResolveCatalogPathAsync(string brandSlug, string seriesSlug)
@@ -121,16 +134,16 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
         if (filter.YearMax.HasValue)
             query = query.Where(x => x.Year <= filter.YearMax);
         if (filter.PriceMin.HasValue)
-            query = query.Where(x => x.ShowPrice && x.Price >= filter.PriceMin);
+            query = query.Where(x => x.ShowPrice && (x.CampaignPrice ?? x.Price) >= filter.PriceMin);
         if (filter.PriceMax.HasValue)
-            query = query.Where(x => x.ShowPrice && x.Price <= filter.PriceMax);
+            query = query.Where(x => x.ShowPrice && (x.CampaignPrice ?? x.Price) <= filter.PriceMax);
         if (filter.KmMax.HasValue)
             query = query.Where(x => x.Kilometer <= filter.KmMax);
 
         query = filter.Sort switch
         {
-            "fiyat-artan" => query.OrderBy(x => x.Price),
-            "fiyat-azalan" => query.OrderByDescending(x => x.Price),
+            "fiyat-artan" => query.OrderBy(x => x.CampaignPrice ?? x.Price),
+            "fiyat-azalan" => query.OrderByDescending(x => x.CampaignPrice ?? x.Price),
             "km" => query.OrderBy(x => x.Kilometer),
             "yil" => query.OrderByDescending(x => x.Year).ThenByDescending(x => x.PublishedAt),
             _ => query.OrderByDescending(x => x.PublishedAt)
@@ -151,11 +164,7 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
             Items = await ToCardsAsync(query.Skip((page - 1) * PageSize).Take(PageSize))
         };
 
-        model.Brands = await baseQuery
-            .GroupBy(x => new { x.Brand.Slug, x.Brand.Name })
-            .Select(g => new FilterOptionModel { Value = g.Key.Slug, Label = g.Key.Name, Count = g.Count() })
-            .OrderBy(x => x.Label)
-            .ToListAsync();
+        model.Brands = await GetStockBrandsAsync(baseQuery);
 
         if (path.BrandId.HasValue)
         {
@@ -199,11 +208,13 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
             Title = x.Title,
             BrandName = x.Brand.Name,
             BrandSlug = x.Brand.Slug,
+            BrandLogoUrl = x.Brand.LogoPath,
             SeriesName = x.Series.Name,
             SeriesSlug = x.Series.Slug,
             ModelName = x.CarModel.Name,
             Status = x.Status,
             Price = x.Price,
+            CampaignPrice = x.CampaignPrice,
             ShowPrice = x.ShowPrice,
             HeavyDamageRecord = x.HeavyDamageRecord,
             TramerAmount = x.TramerAmount,
@@ -282,6 +293,7 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
             FuelName = EnumHelper.GetDisplayName(r.FuelType),
             TransmissionName = EnumHelper.GetDisplayName(r.Transmission),
             Price = r.Price,
+            CampaignPrice = r.CampaignPrice,
             ShowPrice = r.ShowPrice,
             Status = r.Status
         }).ToList();
@@ -299,6 +311,7 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
             FuelType = x.FuelType,
             Transmission = x.Transmission,
             Price = x.Price,
+            CampaignPrice = x.CampaignPrice,
             ShowPrice = x.ShowPrice,
             Status = x.Status,
             CoverPath = x.Media.Where(m => m.IsCover).Select(m => m.MediumPath).FirstOrDefault()
@@ -371,6 +384,7 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
         public FuelType? FuelType { get; set; }
         public TransmissionType? Transmission { get; set; }
         public decimal? Price { get; set; }
+        public decimal? CampaignPrice { get; set; }
         public bool ShowPrice { get; set; }
         public VehicleStatus Status { get; set; }
         public string CoverPath { get; set; }

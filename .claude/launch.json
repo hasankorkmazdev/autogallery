@@ -1,0 +1,27 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "server",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/start-server.ps1"],
+      "port": 5080,
+      "autoPort": false
+    },
+    {
+      "name": "panel",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "FatihTasci.Admin", "run", "dev"],
+      "port": 5173,
+      "autoPort": false,
+      "url": "http://localhost:5173"
+    },
+    {
+      "name": "server-verify",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "FatihTasci.Server", "-c", "DebugVerify", "--urls", "http://localhost:5081"],
+      "port": 5081,
+      "autoPort": false
+    }
+  ]
+}

@@ -40,7 +40,7 @@ function Detail({ label, children }: { label: string; children: React.ReactNode 
   );
 }
 
-// Talep ayrıntısı; personel durumu günceller ve not ekler (PROJE_DOKUMANI §7 talep akışı).
+// Talep ayrıntısı; personel durumu günceller ve not ekler.
 export function LeadDialog({ lead, onOpenChange, onSaved }: LeadDialogProps) {
   const lookups = useLookupStore((state) => state.lookups);
   const [saving, setSaving] = useState(false);

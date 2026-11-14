@@ -20,7 +20,7 @@ interface VehicleRowActionsProps {
 const isVisibleOnSite = (status: VehicleStatusValue) =>
   status === VehicleStatus.Published || status === VehicleStatus.Reserved || status === VehicleStatus.Sold;
 
-// Listeden tek tıkla Rezerve / Satıldı (PROJE_DOKUMANI §4 "Hızlı durum değişikliği").
+// Listeden tek tıkla Rezerve / Satıldı.
 export function VehicleRowActions({ vehicle, onStatusChange, onCopy }: VehicleRowActionsProps) {
   const navigate = useNavigate();
 

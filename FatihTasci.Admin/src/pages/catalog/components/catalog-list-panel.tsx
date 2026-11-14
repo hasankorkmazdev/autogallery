@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { BrandLogo } from "@/components/brand-logo";
 
 export interface CatalogListItem {
   id: number;
@@ -10,6 +11,8 @@ export interface CatalogListItem {
   slug: string;
   isActive: boolean;
   count?: number;
+  /** Yalnız markalarda: undefined ise logo alanı hiç gösterilmez */
+  logoUrl?: string | null;
 }
 
 interface CatalogListPanelProps {
@@ -58,6 +61,7 @@ export function CatalogListPanel({
                   size="row"
                   className="flex-1"
                   onClick={() => onSelect?.(item.id)}>
+                  {item.logoUrl !== undefined && <BrandLogo src={item.logoUrl} className="size-8" />}
                   <span className="flex flex-1 flex-col items-start">
                     <span>{item.name}</span>
                     <span className="text-xs text-muted-foreground">/{item.slug}</span>

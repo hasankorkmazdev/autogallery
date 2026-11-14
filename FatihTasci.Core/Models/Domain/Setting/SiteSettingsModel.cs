@@ -1,4 +1,5 @@
 using FatihTasci.Core.Models.Domain.Common;
+using FatihTasci.Core.Providers;
 using FluentValidation;
 using System.Globalization;
 
@@ -9,7 +10,26 @@ namespace FatihTasci.Core.Models.Domain.Setting;
 /// </summary>
 public class SiteSettingsModel : IRequestModel
 {
+    /// <summary>
+    /// Firma (galeri) adı. Vitrin başlığı, sayfa başlıkları ve panelde kullanılır.
+    /// </summary>
     public string GalleryName { get; set; }
+
+    /// <summary>
+    /// Firma logosu, public depoya göre göreli yol. PUT /api/settings ile değişmez; /api/settings/logo ile yüklenir.
+    /// </summary>
+    public string LogoPath { get; set; }
+
+    /// <summary>
+    /// Logo adresi (/media/...). Salt okunur, ayar olarak saklanmaz.
+    /// </summary>
+    public string LogoUrl => string.IsNullOrEmpty(LogoPath) ? null : $"{LocalMediaStorage.RequestPath}/{LogoPath}";
+
+    /// <summary>
+    /// Açıksa logo araç fotoğraflarının orta ve büyük varyantlarına filigran olarak basılır.
+    /// </summary>
+    public bool WatermarkEnabled { get; set; } = true;
+
     public string Phone { get; set; }
 
     /// <summary>

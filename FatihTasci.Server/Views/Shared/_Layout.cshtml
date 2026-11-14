@@ -35,7 +35,13 @@
     <a class="skip-link" href="#main">İçeriğe geç</a>
     <header class="site-header">
         <div class="container header-inner">
-            <a class="brand" href="/">@galleryName</a>
+            <a class="brand" href="/">
+                @if (settings.LogoUrl != null)
+                {
+                    <img class="brand-mark" src="@settings.LogoUrl" alt="" />
+                }
+                <span>@galleryName</span>
+            </a>
             <nav class="main-nav" aria-label="Ana menü">
                 <a href="/" class="@(path == "/" ? "active" : null)">Ana Sayfa</a>
                 <a href="/stok" class="@(path.StartsWith("/stok") || path.StartsWith("/arac") ? "active" : null)">Stok</a>
@@ -55,7 +61,13 @@
     <footer class="site-footer">
         <div class="container footer-grid">
             <div>
-                <div class="brand">@galleryName</div>
+                <div class="brand">
+                    @if (settings.LogoUrl != null)
+                    {
+                        <img class="brand-mark" src="@settings.LogoUrl" alt="" />
+                    }
+                    <span>@galleryName</span>
+                </div>
                 @if (!string.IsNullOrWhiteSpace(settings.Address))
                 {
                     <p class="muted">@settings.Address</p>

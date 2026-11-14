@@ -5,6 +5,8 @@ using FatihTasci.Core.Entity.Inventory;
 using FatihTasci.Core.Enums;
 using FatihTasci.Core.Helpers;
 using FatihTasci.Core.Models.Domain.Setting;
+using FatihTasci.Data.Context.Seed;
+using System.Globalization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -18,6 +20,20 @@ namespace FatihTasci.Data.Context;
 /// </summary>
 public static class DbSeeder
 {
+    /// <summary>
+    /// Marka logoları Server'ın wwwroot/images/brands klasöründen statik dosya olarak sunulur.
+    /// </summary>
+    public const string BrandLogoFolder = "/images/brands";
+
+    /// <summary>
+    /// SiteSettings'te uygulanan katalog seed sürümü. Katalog verisi değişince sürüm artırılır.
+    /// </summary>
+    private const string CatalogSeedVersionKey = "__CatalogSeedVersion";
+    private const int CatalogSeedVersion = 2;
+
+    private static readonly StringComparer NameOrder =
+        StringComparer.Create(CultureInfo.GetCultureInfo("tr-TR"), CompareOptions.IgnoreCase | CompareOptions.NumericOrdering);
+
     public static async Task SeedAsync(AppDbContext context, IConfiguration configuration, IPasswordHasher<UserEntity> passwordHasher, ILogger logger)
     {
         await SeedAdminAsync(context, configuration, passwordHasher, logger);
@@ -25,6 +41,7 @@ public static class DbSeeder
         await SeedFeaturesAsync(context);
         await SeedCatalogAsync(context);
         await SeedSettingsAsync(context);
+        await SeedShowroomScenesAsync(context);
     }
 
     private static async Task SeedAdminAsync(AppDbContext context, IConfiguration configuration, IPasswordHasher<UserEntity> passwordHasher, ILogger logger)
@@ -125,12 +142,15 @@ public static class DbSeeder
     }
 
     /// <summary>
-    /// Yaygın premium markalar ve serileri. Model listesi örnek niteliğindedir; eksik model
-    /// araç girerken panelden anında eklenir (PROJE_DOKUMANI §3.1, §9 açık soru: katalog kapsamı).
+    /// Katalog: SpareParts'taki 104 marka (logolarıyla) ve serileri, üstüne motor + paket seviyesinde
+    /// örnek modeller. Var olan veritabanıyla birleşir (eksik olan eklenir, hiçbir şey silinmez).
+    /// Sürüm anahtarı sayesinde yalnız bir kez çalışır; panelde yapılan değişiklikler sonraki açılışlarda ezilmez.
+    /// Eksik model araç girerken panelden anında eklenir.
     /// </summary>
     private static async Task SeedCatalogAsync(AppDbContext context)
     {
-        if (await context.Brands.IgnoreQueryFilters().AnyAsync())
+        var versionSetting = await context.SiteSettings.FirstOrDefaultAsync(x => x.Key == CatalogSeedVersionKey);
+        if (versionSetting != null && int.TryParse(versionSetting.Value, out var appliedVersion) && appliedVersion >= CatalogSeedVersion)
             return;
 
         var catalog = new Dictionary<string, Dictionary<string, string[]>>
@@ -250,32 +270,112 @@ public static class DbSeeder
             }
         };
 
-        var brandOrder = 0;
+        var brands = await context.Brands.IgnoreQueryFilters()
+            .Include(x => x.Series).ThenInclude(x => x.Models)
+            .ToListAsync();
+
+        // 1) SpareParts'tan gelen markalar (logolarıyla) ve seriler
+        for (var i = 0; i < CatalogSeedData.Brands.Length; i++)
+        {
+            var (name, slug) = CatalogSeedData.Brands[i];
+            var brand = FindOrAddBrand(context, brands, name, slug);
+            brand.LogoPath ??= $"{BrandLogoFolder}/{slug}.png";
+            brand.SortOrder = i + 1;
+
+            if (CatalogSeedData.SeriesByBrandSlug.TryGetValue(slug, out var seriesNames))
+            {
+                foreach (var seriesName in seriesNames)
+                    FindOrAddSeries(brand, seriesName);
+            }
+        }
+
+        // 2) Motor + paket seviyesindeki örnek modeller
         foreach (var (brandName, seriesMap) in catalog)
         {
-            var brand = new BrandEntity { Name = brandName, Slug = SlugHelper.Generate(brandName), SortOrder = brandOrder++ };
-            var seriesOrder = 0;
+            var brand = FindOrAddBrand(context, brands, brandName, SlugHelper.Generate(brandName));
             foreach (var (seriesName, models) in seriesMap)
             {
-                var series = new SeriesEntity { Name = seriesName, Slug = SlugHelper.Generate(seriesName), SortOrder = seriesOrder++ };
+                var series = FindOrAddSeries(brand, seriesName);
                 foreach (var modelName in models)
-                    series.Models.Add(new CarModelEntity { Name = modelName, Slug = SlugHelper.Generate(modelName) });
-                brand.Series.Add(series);
+                {
+                    var modelSlug = SlugHelper.Generate(modelName);
+                    if (series.Models.All(x => x.Slug != modelSlug))
+                        series.Models.Add(new CarModelEntity { Name = modelName, Slug = modelSlug });
+                }
             }
-            context.Brands.Add(brand);
         }
+
+        // Seriler alfabetik sıralanır; sayılar doğal sırada (3 Serisi < 10, 206 < 2008).
+        foreach (var brand in brands)
+        {
+            var ordered = brand.Series.OrderBy(x => x.Name, NameOrder).ToList();
+            for (var i = 0; i < ordered.Count; i++)
+                ordered[i].SortOrder = i + 1;
+        }
+
+        if (versionSetting == null)
+            context.SiteSettings.Add(new SiteSettingEntity { Key = CatalogSeedVersionKey, Value = CatalogSeedVersion.ToString() });
+        else
+            versionSetting.Value = CatalogSeedVersion.ToString();
 
         await context.SaveChangesAsync();
     }
 
+    private static BrandEntity FindOrAddBrand(AppDbContext context, List<BrandEntity> brands, string name, string slug)
+    {
+        var brand = brands.FirstOrDefault(x => x.Slug == slug);
+        if (brand != null)
+            return brand;
+
+        brand = new BrandEntity { Name = name, Slug = slug };
+        brands.Add(brand);
+        context.Brands.Add(brand);
+        return brand;
+    }
+
+    private static SeriesEntity FindOrAddSeries(BrandEntity brand, string name)
+    {
+        var slug = SlugHelper.Generate(name);
+        var series = brand.Series.FirstOrDefault(x => x.Slug == slug);
+        if (series != null)
+            return series;
+
+        series = new SeriesEntity { Name = name, Slug = slug };
+        brand.Series.Add(series);
+        return series;
+    }
+
     private static async Task SeedSettingsAsync(AppDbContext context)
     {
-        if (await context.SiteSettings.AnyAsync())
+        if (await context.SiteSettings.AnyAsync(x => x.Key == nameof(SiteSettingsModel.GalleryName)))
             return;
 
         context.SiteSettings.AddRange(
             new SiteSettingEntity { Key = nameof(SiteSettingsModel.GalleryName), Value = "Premium Oto Galeri" },
             new SiteSettingEntity { Key = nameof(SiteSettingsModel.WorkingHours), Value = "Pazartesi - Cumartesi 09:00 - 19:00" });
+        await context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Galeri atmosferi için başlangıç sahneleri (fotoğrafsız). Fotoğraflar panelden yüklenir;
+    /// fotoğrafı olmayan sahne vitrinde görünmez. Silinmiş sahneler de sayılır, böylece yeniden eklenmez.
+    /// </summary>
+    private static async Task SeedShowroomScenesAsync(AppDbContext context)
+    {
+        if (await context.ShowroomScenes.IgnoreQueryFilters().AnyAsync())
+            return;
+
+        var scenes = new (string Tag, string Title)[]
+        {
+            ("Dış cephe & vitrin", "Showroom ve Vitrin"),
+            ("Sergi salonu", "Işıklandırılmış Sergi Salonu"),
+            ("Misafir alanı", "Kahve ve Birebir Görüşme"),
+            ("Hazırlık", "Detaylı Bakım ve Hazırlık"),
+            ("Ekspertiz", "Kontrol ve Ekspertiz Alanı"),
+            ("Teslimat", "Teslimat Sahnesi")
+        };
+
+        context.ShowroomScenes.AddRange(scenes.Select((s, i) => new ShowroomSceneEntity { Tag = s.Tag, Title = s.Title, SortOrder = i }));
         await context.SaveChangesAsync();
     }
 }

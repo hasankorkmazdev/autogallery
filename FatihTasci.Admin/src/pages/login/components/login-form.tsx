@@ -25,13 +25,18 @@ const loginSchema = z.object({
 
 type LoginValues = z.infer<typeof loginSchema>;
 
+// Geliştirmede appsettings.Development.json SeedAdmin bilgileri; production derlemesine girmez.
+const defaultLoginValues: LoginValues = import.meta.env.DEV
+  ? { eMail: "admin@galeri.test", password: "Dev-9b85a3d8f4b4!" }
+  : { eMail: "", password: "" };
+
 export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const login = useAuthStore((state) => state.login);
   const navigate = useNavigate();
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { eMail: "", password: "" },
+    defaultValues: defaultLoginValues,
   });
   const { errors } = form.formState;
 

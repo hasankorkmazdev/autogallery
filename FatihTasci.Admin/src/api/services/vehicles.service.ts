@@ -53,6 +53,7 @@ export interface VehicleConditionRequest {
 
 export interface VehiclePricingRequest {
   price: number | null;
+  campaignPrice: number | null;
   showPrice: boolean;
   description: string | null;
   isFeatured: boolean;

@@ -29,4 +29,14 @@
     <Content Remove="logs\**" />
   </ItemGroup>
 
+  <!--
+    Debug derlemeden önce (VS F5, dotnet run / build / ef) 5080'i tutan ya da bin\Debug'ı kilitleyen eski sunucu kapatılır,
+    böylece "port kullanımda" ve "dosya kilitli" hataları olmaz. Yalnız Windows'ta ve gerçek derlemede çalışır.
+  -->
+  <Target Name="StopPreviousServer" BeforeTargets="BeforeBuild"
+          Condition="'$(Configuration)' == 'Debug' AND '$(OS)' == 'Windows_NT' AND '$(DesignTimeBuild)' != 'true'">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\scripts\free-port.ps1&quot; -Port 5080 -ImagePath &quot;$(MSBuildProjectDirectory)\bin\Debug&quot;"
+          ContinueOnError="true" />
+  </Target>
+
 </Project>

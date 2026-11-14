@@ -27,12 +27,12 @@ const STRICT = new Set([
   "Button", "Input", "NumberInput", "IPInput", "PhoneInput", "Textarea", "Checkbox", "Switch",
   "Slider", "Progress", "Badge", "SelectTrigger", "DatePicker", "TimePicker", "Label", "FieldLabel",
   "FieldDescription", "FieldError", "Separator", "SidebarMenuButton", "SidebarTrigger",
-  "DropdownMenuItem", "SelectItem", "TabsTrigger", "AlertDialogAction", "AlertDialogCancel",
+  "DropdownMenuItem", "SelectItem", "Combobox", "TabsTrigger", "AlertDialogAction", "AlertDialogCancel",
 ]);
 
 // Alan kontrollerinde sabit genişlik (w-16, w-[150px]) yerleşimdir; Button/Badge boyutunu size belirler.
 const WIDTH_OK = new Set([
-  "Input", "NumberInput", "IPInput", "PhoneInput", "Textarea", "SelectTrigger", "DatePicker", "TimePicker", "Button",
+  "Input", "NumberInput", "IPInput", "PhoneInput", "Textarea", "SelectTrigger", "Combobox", "DatePicker", "TimePicker", "Button",
 ]);
 const WIDTH = [/^w-/, /^min-w-/];
 

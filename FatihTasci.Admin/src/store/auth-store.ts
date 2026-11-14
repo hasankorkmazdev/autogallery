@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { User } from "@/api/types";
+import { UserRole, type User } from "@/api/types";
 
 interface AuthState {
   user: User | null;
@@ -27,6 +27,13 @@ export const useAuthStore = create<AuthState>()(
     },
   ),
 );
+
+/**
+ * Oturumdaki kullanıcı Yönetici mi? Menü ve butonları gizlemek içindir; asıl kontrol sunucudadır.
+ */
+export function useIsAdmin() {
+  return useAuthStore((state) => state.user?.role === UserRole.Admin);
+}
 
 /**
  * Token süresi dolmuşsa oturum kapalı sayılır.

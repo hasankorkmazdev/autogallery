@@ -25,7 +25,7 @@ function parseStep(value: string | null) {
   return Number.isInteger(step) && step >= 1 && step <= LAST_STEP ? step : 1;
 }
 
-// Araç giriş sihirbazı (PROJE_DOKUMANI §4). Adımlar arasında serbestçe geçilir;
+// Araç giriş sihirbazı (7 adım). Adımlar arasında serbestçe geçilir;
 // geçişte açık adımın formu doğrulanıp değiştiyse taslağa kaydedilir.
 export default function VehicleWizardPage() {
   const { id } = useParams();

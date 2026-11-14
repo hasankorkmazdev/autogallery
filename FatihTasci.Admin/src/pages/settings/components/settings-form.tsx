@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InputField } from "@/components/ui/input-field";
-import { TextareaField } from "@/components/form/form-fields";
+import { SwitchField, TextareaField } from "@/components/form/form-fields";
 import { settingsService } from "@/api/services/settings.service";
 import type { SiteSettings } from "@/api/types";
 
@@ -38,6 +38,7 @@ const schema = z.object({
   facebook: optionalUrl,
   youtube: optionalUrl,
   heroVideoUrl: optionalUrl,
+  watermarkEnabled: z.boolean(),
 });
 type Values = z.infer<typeof schema>;
 
@@ -54,12 +55,20 @@ const toValues = (s: SiteSettings): Values => ({
   facebook: s.facebook ?? "",
   youtube: s.youtube ?? "",
   heroVideoUrl: s.heroVideoUrl ?? "",
+  watermarkEnabled: s.watermarkEnabled,
 });
 
-const toSettings = (v: Values): SiteSettings =>
-  Object.fromEntries(Object.entries(v).map(([key, value]) => [key, value.trim() || null])) as unknown as SiteSettings;
+const toSettings = ({ watermarkEnabled, ...texts }: Values): SiteSettings => ({
+  ...(Object.fromEntries(Object.entries(texts).map(([key, value]) => [key, value.trim() || null])) as Omit<SiteSettings, "watermarkEnabled">),
+  watermarkEnabled,
+});
 
-export function SettingsForm({ settings }: { settings: SiteSettings }) {
+interface SettingsFormProps {
+  settings: SiteSettings;
+  onSaved: (settings: SiteSettings) => void;
+}
+
+export function SettingsForm({ settings, onSaved }: SettingsFormProps) {
   const [saving, setSaving] = useState(false);
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: toValues(settings) });
   const { errors } = form.formState;
@@ -69,6 +78,7 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
     try {
       const result = await settingsService.update(toSettings(values));
       form.reset(toValues(result.data));
+      onSaved(result.data);
       toast.success(result.message);
     } catch (error) {
       toast.error((error as Error).message);
@@ -85,7 +95,12 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
           <CardDescription>Sitenin başlığında, alt bilgisinde ve araç sayfalarındaki butonlarda kullanılır.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <InputField id="galleryName" label="Galeri adı" required description="Site başlığı ve sekme adı." error={errors.galleryName?.message} {...form.register("galleryName")} />
+          <InputField id="galleryName" label="Firma (galeri) adı" required description="Site başlığı, sekme adı ve panel başlığı." error={errors.galleryName?.message} {...form.register("galleryName")} />
+          <Controller control={form.control} name="watermarkEnabled" render={({ field }) => (
+            <SwitchField id="watermarkEnabled" label="Fotoğraflara filigran bas"
+              description="Logo, araç fotoğraflarının sağ alt köşesine yarı saydam basılır (liste küçük resimleri hariç). Logo yoksa basılmaz."
+              checked={field.value} onChange={field.onChange} />
+          )} />
           <InputField id="phone" label="Telefon" description="Ara butonunda kullanılır, örn. 0212 123 45 67." error={errors.phone?.message} {...form.register("phone")} />
           <InputField id="whatsApp" label="WhatsApp" description="Ülke koduyla, yalnız rakam: 905321234567." error={errors.whatsApp?.message} {...form.register("whatsApp")} />
           <InputField id="email" label="E-posta" description="Sitede iletişim adresi olarak görünür." error={errors.email?.message} {...form.register("email")} />

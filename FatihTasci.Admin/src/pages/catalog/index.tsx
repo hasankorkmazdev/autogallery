@@ -83,7 +83,7 @@ export default function CatalogPage() {
           title="Markalar"
           description="Seri listesi için bir marka seçin."
           emptyText="Marka yok."
-          items={brands.map((b) => ({ id: b.id, name: b.name, slug: b.slug, isActive: b.isActive, count: b.seriesCount }))}
+          items={brands.map((b) => ({ id: b.id, name: b.name, slug: b.slug, isActive: b.isActive, count: b.seriesCount, logoUrl: b.logoUrl }))}
           selectedId={brandId}
           onSelect={(id) => {
             setBrandId(id);

@@ -41,6 +41,8 @@
             <p class="muted">@Model.TotalCount araç</p>
         </div>
 
+        <partial name="_BrandStrip" model="Model.Brands" view-data='new ViewDataDictionary(ViewData) { ["ActiveBrand"] = f.Brand }' />
+
         <div class="stock-layout">
             <form class="filters" method="get" action="/stok" data-stock-filter>
                 <label>Marka

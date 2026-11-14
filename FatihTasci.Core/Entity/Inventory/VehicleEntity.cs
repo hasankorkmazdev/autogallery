@@ -65,6 +65,12 @@ public class VehicleEntity : BaseAuditableEntity<Guid>
     public decimal? Price { get; set; }
 
     /// <summary>
+    /// Kampanyalı fiyat. Doluysa sitede Price üstü çizili gösterilir, bu fiyat öne çıkar; sıralama ve filtre bunu kullanır.
+    /// Price'tan küçük olmalıdır.
+    /// </summary>
+    public decimal? CampaignPrice { get; set; }
+
+    /// <summary>
     /// Kapalıysa sitede "Fiyat için arayınız" yazar. Fiyat yine de panelde tutulur.
     /// </summary>
     public bool ShowPrice { get; set; } = true;
@@ -89,61 +95,4 @@ public class VehicleEntity : BaseAuditableEntity<Guid>
     public virtual ICollection<VehicleBodyPartEntity> BodyParts { get; set; } = new List<VehicleBodyPartEntity>();
     public virtual ICollection<VehicleFeatureEntity> Features { get; set; } = new List<VehicleFeatureEntity>();
     public virtual ICollection<VehicleMediaEntity> Media { get; set; } = new List<VehicleMediaEntity>();
-}
-
-/// <summary>
-/// Boya / değişen şemasında bir parçanın durumu. (VehicleId, Part) benzersizdir.
-/// </summary>
-[Table(name: "VehicleBodyParts", Schema = "Inventory")]
-public class VehicleBodyPartEntity : BaseEntity<int>
-{
-    public Guid VehicleId { get; set; }
-    public BodyPart Part { get; set; }
-    public BodyPartState State { get; set; } = BodyPartState.Original;
-    public string Note { get; set; }
-
-    public virtual VehicleEntity Vehicle { get; set; }
-}
-
-/// <summary>
-/// Donanım listesi (panelden yönetilir).
-/// </summary>
-[Table(name: "Features", Schema = "Inventory")]
-public class FeatureEntity : BaseEntity<int>
-{
-    public FeatureCategory Category { get; set; }
-    public string Name { get; set; }
-    public int SortOrder { get; set; }
-}
-
-[Table(name: "VehicleFeatures", Schema = "Inventory")]
-public class VehicleFeatureEntity
-{
-    public Guid VehicleId { get; set; }
-    public int FeatureId { get; set; }
-
-    public virtual VehicleEntity Vehicle { get; set; }
-    public virtual FeatureEntity Feature { get; set; }
-}
-
-/// <summary>
-/// Araç fotoğrafı. Orijinal dosya saklanır, ayrıca 480 / 1280 / 2400 px WebP varyantları üretilir.
-/// Yollar Storage kökünce görelidir ve sitede /media altında sunulur.
-/// </summary>
-[Table(name: "VehicleMedia", Schema = "Inventory")]
-public class VehicleMediaEntity : BaseEntity<Guid>
-{
-    public Guid VehicleId { get; set; }
-    public string OriginalPath { get; set; }
-    public string SmallPath { get; set; }
-    public string MediumPath { get; set; }
-    public string LargePath { get; set; }
-    public int Width { get; set; }
-    public int Height { get; set; }
-    public int SortOrder { get; set; }
-    public bool IsCover { get; set; }
-    public string AltText { get; set; }
-    public DateTime CreateDate { get; set; } = DateTime.Now;
-
-    public virtual VehicleEntity Vehicle { get; set; }
 }

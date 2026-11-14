@@ -51,15 +51,3 @@ public class LeadEntity : BaseAuditableEntity<Guid>
     public virtual VehicleEntity Vehicle { get; set; }
     public virtual ICollection<LeadMediaEntity> Media { get; set; } = new List<LeadMediaEntity>();
 }
-
-/// <summary>
-/// "Aracını Sat" formundan yüklenen fotoğraflar.
-/// </summary>
-[Table(name: "LeadMedia", Schema = "Crm")]
-public class LeadMediaEntity : BaseEntity<Guid>
-{
-    public Guid LeadId { get; set; }
-    public string Path { get; set; }
-
-    public virtual LeadEntity Lead { get; set; }
-}

@@ -5,14 +5,8 @@ import {
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
+import { Combobox } from "@/components/ui/combobox";
 import { NumberInput } from "@/components/ui/number-input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import type { EnumOption } from "@/api/types";
@@ -34,8 +28,13 @@ function FieldFooter({ description, error }: { description?: React.ReactNode; er
   return null;
 }
 
+export interface SelectOption extends EnumOption {
+  /** Seçeneğin solunda gösterilir (örn. marka logosu) */
+  icon?: React.ReactNode;
+}
+
 interface SelectFieldProps extends BaseFieldProps {
-  options: EnumOption[];
+  options: SelectOption[];
   value: number | null | undefined;
   onChange: (value: number | null) => void;
   placeholder?: string;
@@ -59,21 +58,15 @@ export function SelectField({
       <FieldLabel htmlFor={id} required={required}>
         {label}
       </FieldLabel>
-      <Select
+      <Combobox
+        id={id}
         value={value === null || value === undefined ? "" : String(value)}
         onValueChange={(v) => onChange(v === "" ? null : Number(v))}
-        disabled={disabled}>
-        <SelectTrigger id={id} aria-invalid={error ? true : undefined}>
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((option) => (
-            <SelectItem key={option.value} value={String(option.value)}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        options={options.map((option) => ({ value: String(option.value), label: option.label, icon: option.icon }))}
+        placeholder={placeholder}
+        disabled={disabled}
+        aria-invalid={error ? true : undefined}
+      />
       <FieldFooter description={description} error={error} />
     </Field>
   );

@@ -1,13 +1,14 @@
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SelectField } from "@/components/form/form-fields";
+import { BrandLogo } from "@/components/brand-logo";
 
 interface CatalogSelectProps {
   id: string;
   label: string;
   description: string;
   addTitle: string;
-  items: { id: number; name: string }[];
+  items: { id: number; name: string; logoUrl?: string | null }[];
   value: number | null;
   error?: string;
   disabled?: boolean;
@@ -38,7 +39,11 @@ export function CatalogSelect({
           error={error}
           required
           disabled={disabled}
-          options={items.map((x) => ({ value: x.id, label: x.name }))}
+          options={items.map((x) => ({
+            value: x.id,
+            label: x.name,
+            icon: x.logoUrl !== undefined ? <BrandLogo src={x.logoUrl} /> : undefined,
+          }))}
           value={value}
           onChange={onChange}
         />

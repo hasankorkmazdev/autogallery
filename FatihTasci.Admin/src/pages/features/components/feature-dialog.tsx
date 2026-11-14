@@ -40,7 +40,8 @@ interface FeatureDialogProps {
 }
 
 export function FeatureDialog({ state, onOpenChange, onSaved }: FeatureDialogProps) {
-  const categories = useLookupStore((s) => s.lookups?.featureCategory ?? []);
+  // Selector'da `?? []` kullanılmaz: her çağrıda yeni dizi döner ve sonsuz render'a yol açar.
+  const categories = useLookupStore((s) => s.lookups?.featureCategory) ?? [];
   const [saving, setSaving] = useState(false);
   const form = useForm<Values, unknown, Output>({
     resolver: zodResolver(schema),

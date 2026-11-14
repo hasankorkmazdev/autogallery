@@ -1,6 +1,7 @@
 import * as React from "react";
 import { CarFront, ExternalLink } from "lucide-react";
-import { useAuthStore } from "@/store/auth-store";
+import { useAuthStore, useIsAdmin } from "@/store/auth-store";
+import { useSiteSettingsStore } from "@/store/site-settings-store";
 import { navigation } from "./sidebar-config";
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
@@ -18,6 +19,16 @@ import {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const user = useAuthStore((state) => state.user);
+  const isAdmin = useIsAdmin();
+  // Firma adı ve logosu site ayarlarından gelir (kodda sabit yazılmaz).
+  const settings = useSiteSettingsStore((state) => state.settings);
+  const loadSettings = useSiteSettingsStore((state) => state.load);
+
+  React.useEffect(() => {
+    loadSettings().catch(() => undefined);
+  }, [loadSettings]);
+
+  const items = navigation.filter((item) => isAdmin || !item.adminOnly);
 
   const userData = {
     name: user ? `${user.name} ${user.surname}` : "",
@@ -31,11 +42,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <a href={publicSiteUrl("/")} target="_blank" rel="noreferrer">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <CarFront className="size-4" />
-                </div>
+                {settings?.logoUrl ? (
+                  <div className="flex aspect-square size-8 items-center justify-center overflow-hidden rounded-lg bg-white p-0.5">
+                    <img src={settings.logoUrl} alt="" className="max-h-full max-w-full object-contain" />
+                  </div>
+                ) : (
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                    <CarFront className="size-4" />
+                  </div>
+                )}
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold text-sidebar-foreground">Oto Galeri</span>
+                  <span className="truncate font-semibold text-sidebar-foreground">{settings?.galleryName || "Oto Galeri"}</span>
                   <span className="truncate text-xs text-muted-foreground flex items-center gap-1">
                     Siteyi aç <ExternalLink className="size-3" />
                   </span>
@@ -47,7 +64,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
 
       <SidebarContent>
-        <NavMain items={navigation} groupLabel="Yönetim" />
+        <NavMain items={items} groupLabel="Yönetim" />
       </SidebarContent>
 
       <SidebarFooter>

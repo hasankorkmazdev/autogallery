@@ -1,6 +1,8 @@
 @model VehicleCardModel
 @{
     var badge = SiteFormat.StatusBadge(Model.Status);
+    // Satılmış araçta kampanya gösterilmez.
+    var campaign = Model.Status != VehicleStatus.Sold && SiteFormat.HasCampaign(Model.Price, Model.CampaignPrice, Model.ShowPrice);
 }
 <article class="card">
     <a class="card-link" href="@Model.Url">
@@ -17,11 +19,15 @@
             {
                 <span class="badge badge-@Model.Status.ToString().ToLowerInvariant()">@badge</span>
             }
+            @if (campaign)
+            {
+                <span class="badge badge-campaign">Kampanya</span>
+            }
         </div>
         <div class="card-body">
             <h3 class="card-title">@Model.Title</h3>
             <p class="card-meta">@Model.Year · @SiteFormat.Km(Model.Kilometer) · @Model.FuelName · @Model.TransmissionName</p>
-            <p class="card-price">@SiteFormat.Price(Model.Price, Model.ShowPrice)</p>
+            <p class="card-price">@SiteFormat.PriceTag(Model.Price, Model.CampaignPrice, Model.ShowPrice)</p>
         </div>
     </a>
 </article>

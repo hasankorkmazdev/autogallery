@@ -2,7 +2,7 @@ import { z } from "zod";
 import { FuelType, VehicleCondition } from "@/api/types";
 
 // Kurallar sunucudaki FluentValidation validator'larıyla aynıdır
-// (FatihTasci.Core/Models/Domain/Vehicle/VehicleRequestModels.cs). Biri değişirse diğeri de güncellenir.
+// (FatihTasci.Core/Models/Domain/Vehicle/Vehicle*RequestModel.cs). Biri değişirse diğeri de güncellenir.
 
 export const MIN_YEAR = 1950;
 export const MAX_YEAR = new Date().getFullYear() + 1;
@@ -162,14 +162,25 @@ export type VideoValues = z.infer<typeof videoSchema>;
 
 // --- Adım 7: Fiyat ve yayın
 
-export const pricingSchema = z.object({
-  price: z
-    .number()
-    .nullable()
-    .refine((v) => v === null || (v >= 0 && v <= 1_000_000_000), { message: "Fiyat 0 ile 1.000.000.000 TL arasında olmalıdır." }),
-  showPrice: z.boolean(),
-  description: z.string().max(10000, "Açıklama en fazla 10.000 karakter olabilir."),
-  isFeatured: z.boolean(),
-  featuredOrder: z.number().min(0, "Vitrin sırası 0 ya da daha büyük olmalıdır."),
-});
+export const pricingSchema = z
+  .object({
+    price: z
+      .number()
+      .nullable()
+      .refine((v) => v === null || (v >= 0 && v <= 1_000_000_000), { message: "Fiyat 0 ile 1.000.000.000 TL arasında olmalıdır." }),
+    // Boşsa kampanya yok; doluysa sitede fiyatın üstü çizilir.
+    campaignPrice: z.number().nullable(),
+    showPrice: z.boolean(),
+    description: z.string().max(10000, "Açıklama en fazla 10.000 karakter olabilir."),
+    isFeatured: z.boolean(),
+    featuredOrder: z.number().min(0, "Vitrin sırası 0 ya da daha büyük olmalıdır."),
+  })
+  .superRefine((v, ctx) => {
+    if (v.campaignPrice === null) return;
+    if (v.campaignPrice <= 0) {
+      ctx.addIssue({ code: "custom", path: ["campaignPrice"], message: "Kampanyalı fiyat 0'dan büyük olmalıdır." });
+    } else if (!(v.price !== null && v.price > 0 && v.campaignPrice < v.price)) {
+      ctx.addIssue({ code: "custom", path: ["campaignPrice"], message: "Kampanyalı fiyat, normal fiyattan düşük olmalıdır." });
+    }
+  });
 export type PricingValues = z.infer<typeof pricingSchema>;

@@ -1,10 +1,13 @@
 using FatihTasci.Core.Entity.Identity;
+using FatihTasci.Core.Enums;
 using FatihTasci.Core.Models.Domain;
 using FatihTasci.Core.Models.Domain.Account;
 using FatihTasci.Core.Providers;
 using FatihTasci.Core.RepositoryBase;
 using FatihTasci.Core.Service.Domains.Abstracts;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -21,13 +24,15 @@ public class AccountService : DomainService, IAccountService
     private readonly IRepository<UserEntity> _userRepository;
     private readonly IConfiguration _configuration;
     private readonly IPasswordHasher<UserEntity> _passwordHasher;
+    private readonly IMemoryCache _cache;
 
-    public AccountService(IUnitOfWork unitOfWork, IConfiguration configuration, IPasswordHasher<UserEntity> passwordHasher)
+    public AccountService(IUnitOfWork unitOfWork, IConfiguration configuration, IPasswordHasher<UserEntity> passwordHasher, IMemoryCache cache)
     {
         _unitOfWork = unitOfWork;
         _userRepository = unitOfWork.GetRepository<UserEntity>();
         _configuration = configuration;
         _passwordHasher = passwordHasher;
+        _cache = cache;
     }
 
     public async Task<ServiceResultModel<LoginResponseModel>> LoginAsync(LoginRequestModel request)
@@ -68,6 +73,23 @@ public class AccountService : DomainService, IAccountService
             return Result<UserModel>(null, "Kullanıcı bulunamadı.", 404);
 
         return Result(ToModel(user));
+    }
+
+    public static string SessionCacheKey(Guid userId) => $"user-session:{userId:N}";
+
+    public async Task<bool> IsSessionValidAsync(Guid userId, string role)
+    {
+        // Her istekte veritabanına gitmemek için kısa süre önbelleğe alınır; UserService güncellemede temizler.
+        var current = await _cache.GetOrCreateAsync(SessionCacheKey(userId), async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
+            return await _userRepository.GetQuery()
+                .Where(x => x.Id == userId && x.IsActive)
+                .Select(x => (UserRole?)x.Role)
+                .FirstOrDefaultAsync();
+        });
+
+        return current.HasValue && current.Value.ToString() == role;
     }
 
     private static UserModel ToModel(UserEntity user)

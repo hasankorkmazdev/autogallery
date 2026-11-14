@@ -6,6 +6,7 @@ using FatihTasci.Core.Models.Domain.Catalog;
 using FatihTasci.Core.Models.Domain.Lead;
 using FatihTasci.Core.Models.Domain.Public;
 using FatihTasci.Core.Models.Domain.Setting;
+using FatihTasci.Core.Models.Domain.Showroom;
 using FatihTasci.Core.Models.Domain.Vehicle;
 using Microsoft.AspNetCore.Http;
 
@@ -15,6 +16,19 @@ public interface IAccountService : IDomainService
 {
     Task<ServiceResultModel<LoginResponseModel>> LoginAsync(LoginRequestModel request);
     Task<ServiceResultModel<UserModel>> GetUserAsync(Guid userId);
+
+    /// <summary>
+    /// Token'daki kullanıcı hâlâ aktif ve rolü aynı mı? (Pasife alınan ya da rolü değişen kullanıcının eski token'ı geçmez.)
+    /// </summary>
+    Task<bool> IsSessionValidAsync(Guid userId, string role);
+}
+
+public interface IUserService : IDomainService
+{
+    Task<ServiceResultModel<List<UserListItemModel>>> GetListAsync();
+    Task<ServiceResultModel<UserListItemModel>> CreateAsync(SaveUserRequestModel request);
+    Task<ServiceResultModel<UserListItemModel>> UpdateAsync(Guid id, SaveUserRequestModel request);
+    Task<ServiceResultModel> ResetPasswordAsync(Guid id, ResetUserPasswordRequestModel request);
 }
 
 public interface ICatalogService : IDomainService
@@ -67,6 +81,29 @@ public interface IMediaService : IDomainService
     Task<ServiceResultModel<List<VehicleMediaModel>>> DeleteAsync(Guid vehicleId, Guid mediaId);
     Task<ServiceResultModel<string>> UploadExpertiseReportAsync(Guid vehicleId, IFormFile file);
     Task<ServiceResultModel> DeleteExpertiseReportAsync(Guid vehicleId);
+
+    /// <summary>
+    /// Tüm fotoğrafların WebP varyantlarını güncel filigran ayarıyla orijinallerden yeniden üretir.
+    /// onStart toplam sayıyı, onItem her fotoğrafın sonucunu (başarılı mı) bildirir.
+    /// </summary>
+    Task RegenerateAllVariantsAsync(Action<int> onStart, Action<bool> onItem, CancellationToken cancellationToken);
+}
+
+public interface IShowroomService : IDomainService
+{
+    Task<ServiceResultModel<List<ShowroomSceneModel>>> GetAllAsync();
+
+    /// <summary>
+    /// Vitrin: aktif ve fotoğrafı olan sahneler, sırasıyla
+    /// </summary>
+    Task<List<ShowroomSceneModel>> GetPublicAsync();
+
+    Task<ServiceResultModel<List<ShowroomSceneModel>>> CreateAsync(SaveShowroomSceneRequestModel request);
+    Task<ServiceResultModel<List<ShowroomSceneModel>>> UpdateAsync(int id, SaveShowroomSceneRequestModel request);
+    Task<ServiceResultModel<List<ShowroomSceneModel>>> ReorderAsync(ShowroomSceneOrderRequestModel request);
+    Task<ServiceResultModel<List<ShowroomSceneModel>>> DeleteAsync(int id);
+    Task<ServiceResultModel<List<ShowroomSceneModel>>> UploadImageAsync(int id, IFormFile file);
+    Task<ServiceResultModel<List<ShowroomSceneModel>>> DeleteImageAsync(int id);
 }
 
 public interface ILeadService : IDomainService
@@ -81,6 +118,22 @@ public interface ISiteSettingService : IDomainService
 {
     Task<SiteSettingsModel> GetAsync();
     Task<ServiceResultModel<SiteSettingsModel>> UpdateAsync(SiteSettingsModel request);
+    Task<ServiceResultModel<SiteSettingsModel>> UploadLogoAsync(IFormFile file);
+    Task<ServiceResultModel<SiteSettingsModel>> DeleteLogoAsync();
+}
+
+/// <summary>
+/// Tüm araç fotoğraflarının varyantlarını orijinallerden arka planda yeniden üretir (logo / filigran değişince).
+/// Tek örnek (singleton) çalışır; aynı anda yalnız bir iş yürür.
+/// </summary>
+public interface IMediaRegenerationRunner
+{
+    WatermarkJobStatusModel GetStatus();
+
+    /// <summary>
+    /// İş zaten sürüyorsa false döner.
+    /// </summary>
+    bool TryStart();
 }
 
 /// <summary>

@@ -32,7 +32,8 @@ export type Lookups = Record<
   | "bodyPartState"
   | "featureCategory"
   | "leadType"
-  | "leadStatus",
+  | "leadStatus"
+  | "userRole",
   EnumOption[]
 >;
 
@@ -74,6 +75,33 @@ export interface User {
   role: number;
 }
 
+// Sunucudaki UserRole enum'ı (yetkiler: CLAUDE.md "Kararlar")
+export const UserRole = {
+  Admin: 1,
+  Staff: 2,
+} as const;
+
+export interface UserListItem {
+  id: string;
+  name: string;
+  surname: string;
+  eMail: string;
+  role: number;
+  isActive: boolean;
+  lastLoginDate: string | null;
+  createDate: string;
+}
+
+export interface SaveUserRequest {
+  name: string;
+  surname: string;
+  eMail: string;
+  role: number;
+  isActive: boolean;
+  /** Yalnız yeni kullanıcıda gönderilir */
+  password?: string;
+}
+
 export interface LoginResponse {
   user: User;
   token: string;
@@ -86,6 +114,7 @@ export interface Brand {
   id: number;
   name: string;
   slug: string;
+  logoUrl: string | null;
   sortOrder: number;
   isActive: boolean;
   seriesCount: number;
@@ -141,6 +170,7 @@ export interface VehicleListItem {
   year: number | null;
   kilometer: number | null;
   price: number | null;
+  campaignPrice: number | null;
   showPrice: boolean;
   status: VehicleStatusValue;
   coverUrl: string | null;
@@ -206,6 +236,7 @@ export interface VehicleDetail {
   videoUrl: string | null;
   expertiseReportUrl: string | null;
   price: number | null;
+  campaignPrice: number | null;
   showPrice: boolean;
   description: string | null;
   isFeatured: boolean;
@@ -247,10 +278,32 @@ export interface Lead {
   createDate: string;
 }
 
+// --- Showroom (ana sayfa "Galeri Atmosferi")
+
+export interface ShowroomScene {
+  id: number;
+  tag: string;
+  title: string;
+  sortOrder: number;
+  isActive: boolean;
+  mediumUrl: string | null;
+  largeUrl: string | null;
+}
+
+export interface SaveShowroomScene {
+  tag: string;
+  title: string;
+  isActive: boolean;
+}
+
 // --- Ayarlar
 
 export interface SiteSettings {
   galleryName: string | null;
+  /** Salt okunur: logo /settings/logo uçlarıyla değişir */
+  logoPath?: string | null;
+  logoUrl?: string | null;
+  watermarkEnabled: boolean;
   phone: string | null;
   whatsApp: string | null;
   email: string | null;
@@ -262,4 +315,13 @@ export interface SiteSettings {
   facebook: string | null;
   youtube: string | null;
   heroVideoUrl: string | null;
+}
+
+export interface WatermarkJobStatus {
+  isRunning: boolean;
+  total: number;
+  processed: number;
+  failed: number;
+  startedAt: string | null;
+  finishedAt: string | null;
 }

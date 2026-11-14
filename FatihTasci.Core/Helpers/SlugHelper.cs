@@ -3,7 +3,7 @@ using System.Text;
 namespace FatihTasci.Core.Helpers;
 
 /// <summary>
-/// Slug üretimi (PROJE_DOKUMANI §3.8). Slug hiçbir yerde elle girilmez.
+/// Slug üretimi. Slug hiçbir yerde elle girilmez.
 /// </summary>
 public static class SlugHelper
 {

@@ -34,6 +34,7 @@ public class AppDbContext : DbContext
     public DbSet<LeadMediaEntity> LeadMedia { get; set; }
     public DbSet<SiteSettingEntity> SiteSettings { get; set; }
     public DbSet<SlugRedirectEntity> SlugRedirects { get; set; }
+    public DbSet<ShowroomSceneEntity> ShowroomScenes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -116,6 +117,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.InteriorColor).HasMaxLength(50);
             e.Property(x => x.TramerAmount).HasColumnType("decimal(18,2)");
             e.Property(x => x.Price).HasColumnType("decimal(18,2)");
+            e.Property(x => x.CampaignPrice).HasColumnType("decimal(18,2)");
             e.Property(x => x.VideoUrl).HasMaxLength(300);
             e.Property(x => x.ExpertiseReportPath).HasMaxLength(300);
             e.Property(x => x.WarrantyEndDate).HasColumnType("date");
@@ -194,6 +196,16 @@ public class AppDbContext : DbContext
             e.Property(x => x.Key).HasMaxLength(60).IsRequired();
             e.Property(x => x.Value).HasMaxLength(1000);
             e.HasIndex(x => x.Key).IsUnique();
+        });
+
+        modelBuilder.Entity<ShowroomSceneEntity>(e =>
+        {
+            e.Property(x => x.Tag).HasMaxLength(40).IsRequired();
+            e.Property(x => x.Title).HasMaxLength(80).IsRequired();
+            e.Property(x => x.OriginalPath).HasMaxLength(300);
+            e.Property(x => x.MediumPath).HasMaxLength(300);
+            e.Property(x => x.LargePath).HasMaxLength(300);
+            e.HasIndex(x => x.SortOrder);
         });
 
         modelBuilder.Entity<SlugRedirectEntity>(e =>

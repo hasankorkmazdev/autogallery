@@ -1,0 +1,68 @@
+@using FatihTasci.Core.Models.Domain.Showroom
+@model List<ShowroomSceneModel>
+@*
+    Ana sayfa "Ayrıcalıklı Galeri Atmosferi" bölümü: genişleyen dikey paneller (masaüstü),
+    yatay kaydırılan kartlar (mobil). Sahneler panelden (Showroom) yönetilir; burada yalnızca
+    aktif ve fotoğraflı sahneler gelir. Etkileşim: wwwroot/js/site.js → [data-atmosphere].
+*@
+@if (Model.Count > 0)
+{
+    <section class="section atmosphere" data-atmosphere aria-labelledby="atmosphere-title">
+        <div class="container">
+            <div class="atmosphere-head">
+                <div>
+                    <p class="eyebrow">Showroom</p>
+                    <h2 id="atmosphere-title" class="atmosphere-title">Ayrıcalıklı Galeri <em>Atmosferi.</em></h2>
+                </div>
+                <div class="atmosphere-controls">
+                    <span class="atmosphere-counter" aria-live="polite">
+                        <span class="atmosphere-counter-label">Sahne</span>
+                        <strong data-atmosphere-current>01</strong>&nbsp;/&nbsp;@Model.Count.ToString("00")
+                    </span>
+                    <a class="btn btn-pill" href="/iletisim">Ziyaret Planla <span aria-hidden="true">↗</span></a>
+                    <button type="button" class="btn btn-pill" data-atmosphere-full><span aria-hidden="true">⤢</span> Tam Ekran</button>
+                    @if (Model.Count > 1)
+                    {
+                        <button type="button" class="icon-btn" data-atmosphere-prev aria-label="Önceki sahne">←</button>
+                        <button type="button" class="icon-btn" data-atmosphere-next aria-label="Sonraki sahne">→</button>
+                    }
+                </div>
+            </div>
+
+            <div class="atmosphere-track" data-atmosphere-track>
+                @for (var i = 0; i < Model.Count; i++)
+                {
+                    var scene = Model[i];
+                    var no = (i + 1).ToString("00");
+                    <article class="atmosphere-panel @(i == 0 ? "is-active" : null)"
+                             data-atmosphere-panel data-image="@scene.LargeUrl" data-title="@scene.Title"
+                             tabindex="0" aria-label="@no. sahne: @scene.Title" aria-current="@(i == 0 ? "true" : "false")">
+                        <img class="atmosphere-img" src="@scene.MediumUrl"
+                             srcset="@scene.MediumUrl 1280w, @scene.LargeUrl 2400w"
+                             sizes="(min-width: 960px) 70vw, 85vw"
+                             alt="@scene.Title" loading="lazy" decoding="async" />
+                        <span class="atmosphere-shade" aria-hidden="true"></span>
+                        <span class="atmosphere-num" aria-hidden="true">@no</span>
+                        <span class="atmosphere-tag">@scene.Tag</span>
+                        <span class="atmosphere-vertical" aria-hidden="true">@scene.Tag</span>
+                        <div class="atmosphere-caption">
+                            <h3>@scene.Title</h3>
+                            <button type="button" class="btn btn-pill btn-pill-dark" data-atmosphere-zoom><span aria-hidden="true">⤢</span> Büyüt</button>
+                        </div>
+                    </article>
+                }
+            </div>
+        </div>
+
+        <dialog class="lightbox" data-atmosphere-dialog aria-label="Showroom fotoğrafı">
+            <img class="lightbox-img" data-atmosphere-dialog-img src="" alt="" />
+            <p class="lightbox-caption" data-atmosphere-dialog-caption></p>
+            <button type="button" class="icon-btn lightbox-close" data-atmosphere-close aria-label="Kapat">✕</button>
+            @if (Model.Count > 1)
+            {
+                <button type="button" class="icon-btn lightbox-prev" data-atmosphere-dialog-prev aria-label="Önceki fotoğraf">←</button>
+                <button type="button" class="icon-btn lightbox-next" data-atmosphere-dialog-next aria-label="Sonraki fotoğraf">→</button>
+            }
+        </dialog>
+    </section>
+}

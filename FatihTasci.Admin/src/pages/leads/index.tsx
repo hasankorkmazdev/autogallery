@@ -1,14 +1,8 @@
 import { useEffect, useState } from "react";
 import { Inbox, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { PageContent, PageHeader, PageLayout } from "@/components/layout/page-layout";
 import { ListPagination } from "@/components/list-pagination";
 import { leadsService } from "@/api/services/leads.service";
@@ -64,24 +58,19 @@ export default function LeadsPage() {
               autoComplete="off"
               className="md:w-80"
             />
-            <Select
+            <Combobox
               value={status === undefined ? ALL : String(status)}
               onValueChange={(v) => {
                 setStatus(v === ALL ? undefined : Number(v));
                 setPageIndex(0);
-              }}>
-              <SelectTrigger className="md:w-48" aria-label="Durum filtresi">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>Tüm durumlar</SelectItem>
-                {(lookups?.leadStatus ?? []).map((option) => (
-                  <SelectItem key={option.value} value={String(option.value)}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              }}
+              options={[
+                { value: ALL, label: "Tüm durumlar" },
+                ...(lookups?.leadStatus ?? []).map((option) => ({ value: String(option.value), label: option.label })),
+              ]}
+              aria-label="Durum filtresi"
+              className="md:w-48"
+            />
           </div>
           <LeadTable items={data?.items ?? []} loading={loading} onOpen={setSelected} />
           <ListPagination

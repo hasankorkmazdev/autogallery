@@ -38,6 +38,18 @@ function CoverCell({ vehicle }: { vehicle: VehicleListItem }) {
   return <img src={vehicle.coverUrl} alt="" className="h-12 w-[72px] rounded-md object-cover" loading="lazy" />;
 }
 
+// Kampanya varsa eski fiyat üstü çizili, altında kampanyalı fiyat.
+function PriceCell({ vehicle }: { vehicle: VehicleListItem }) {
+  const { price, campaignPrice } = vehicle;
+  if (!price || !campaignPrice || campaignPrice >= price) return formatPrice(price);
+  return (
+    <div className="flex flex-col">
+      <span className="text-xs text-muted-foreground line-through">{formatPrice(price)}</span>
+      <span className="font-medium">{formatPrice(campaignPrice)}</span>
+    </div>
+  );
+}
+
 function TitleCell({ vehicle }: { vehicle: VehicleListItem }) {
   return (
     <div className="flex flex-col">
@@ -59,7 +71,7 @@ export function VehicleTable({ items, loading, onStatusChange, onCopy }: Vehicle
       { id: "title", header: "Araç", cell: ({ row }) => <TitleCell vehicle={row.original} /> },
       { accessorKey: "year", header: "Yıl", cell: ({ row }) => row.original.year ?? "-" },
       { accessorKey: "kilometer", header: "Kilometre", cell: ({ row }) => formatKm(row.original.kilometer) },
-      { accessorKey: "price", header: "Fiyat", cell: ({ row }) => formatPrice(row.original.price) },
+      { accessorKey: "price", header: "Fiyat", cell: ({ row }) => <PriceCell vehicle={row.original} /> },
       { accessorKey: "status", header: "Durum", cell: ({ row }) => <VehicleStatusBadge status={row.original.status} /> },
       {
         id: "updated",

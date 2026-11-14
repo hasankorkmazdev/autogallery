@@ -1,38 +1,91 @@
 @model List<BodyPartViewModel>
 @*
-    Boya / değişen şeması (üstten görünüm, ön üstte). Parça yerleşimi panelin
+    Boya / değişen şeması: açılmış araç görünümü (ekspertiz raporlarındaki gibi), ön üstte.
+    Ortada üstten görünüm, iki yanda açılmış yan görünüm, üstte ön tampon, altta arka tampon.
+    Parça yerleşimi ve süs çizimleri panelin
     FatihTasci.Admin/src/components/damage-diagram/parts.ts dosyasıyla aynıdır.
 *@
 @{
-    var shapes = new Dictionary<BodyPart, (int X, int Y, int W, int H)>
+    // Path, etiket ortası, etiket dikey mi
+    var shapes = new Dictionary<BodyPart, (string D, int X, int Y, bool Vertical)>
     {
-        [BodyPart.FrontBumper] = (60, 8, 120, 26),
-        [BodyPart.Hood] = (60, 40, 120, 80),
-        [BodyPart.Roof] = (60, 126, 120, 180),
-        [BodyPart.TrunkLid] = (60, 312, 120, 80),
-        [BodyPart.RearBumper] = (60, 398, 120, 26),
-        [BodyPart.LeftFrontFender] = (14, 40, 40, 80),
-        [BodyPart.LeftFrontDoor] = (14, 126, 40, 87),
-        [BodyPart.LeftRearDoor] = (14, 219, 40, 87),
-        [BodyPart.LeftRearFender] = (14, 312, 40, 80),
-        [BodyPart.RightFrontFender] = (186, 40, 40, 80),
-        [BodyPart.RightFrontDoor] = (186, 126, 40, 87),
-        [BodyPart.RightRearDoor] = (186, 219, 40, 87),
-        [BodyPart.RightRearFender] = (186, 312, 40, 80)
+        [BodyPart.FrontBumper] = ("M124 24 H236 Q244 24 244 32 V42 Q244 50 236 50 H124 Q116 50 116 42 V32 Q116 24 124 24 Z", 180, 37, false),
+        [BodyPart.Hood] = ("M128 64 Q180 56 232 64 L240 132 Q180 122 120 132 Z", 180, 97, false),
+        [BodyPart.Roof] = ("M130 206 Q180 200 230 206 V272 Q180 278 130 272 Z", 180, 239, false),
+        [BodyPart.TrunkLid] = ("M124 316 Q180 324 236 316 L232 350 Q180 360 128 350 Z", 180, 336, false),
+        [BodyPart.RearBumper] = ("M124 362 H236 Q244 362 244 370 V380 Q244 388 236 388 H124 Q116 388 116 380 V370 Q116 362 124 362 Z", 180, 375, false),
+        [BodyPart.LeftFrontFender] = ("M38 60 H62 Q74 80 80 108 V138 H26 V72 Q26 60 38 60 Z", 64, 99, true),
+        [BodyPart.LeftFrontDoor] = ("M26 142 H80 V220 H26 Z", 53, 181, true),
+        [BodyPart.LeftRearDoor] = ("M26 224 H80 V290 H26 Z", 53, 257, true),
+        [BodyPart.LeftRearFender] = ("M26 294 H80 V316 Q74 342 62 358 H38 Q26 358 26 346 Z", 64, 326, true),
+        [BodyPart.RightFrontFender] = ("M322 60 H298 Q286 80 280 108 V138 H334 V72 Q334 60 322 60 Z", 296, 99, true),
+        [BodyPart.RightFrontDoor] = ("M334 142 H280 V220 H334 Z", 307, 181, true),
+        [BodyPart.RightRearDoor] = ("M334 224 H280 V290 H334 Z", 307, 257, true),
+        [BodyPart.RightRearFender] = ("M334 294 H280 V316 Q286 342 298 358 H322 Q334 358 334 346 Z", 296, 326, true)
     };
+    var bodies = new[]
+    {
+        "M180 56 Q236 56 244 70 L248 140 V300 L244 352 Q236 362 180 360 Q124 362 116 352 L112 300 V140 L116 70 Q124 56 180 56 Z",
+        "M38 56 H66 Q100 112 107 222 Q103 300 68 362 H38 Q22 362 22 346 V72 Q22 56 38 56 Z",
+        "M322 56 H294 Q260 112 253 222 Q257 300 292 362 H322 Q338 362 338 346 V72 Q338 56 322 56 Z"
+    };
+    var glass = new[]
+    {
+        "M120 138 Q180 126 240 138 L230 200 Q180 194 130 200 Z",
+        "M130 278 Q180 284 230 278 L236 310 Q180 318 124 310 Z",
+        "M84 142 Q100 162 105 220 H84 Z",
+        "M84 224 H105 Q103 262 84 290 Z",
+        "M276 142 Q260 162 255 220 H276 Z",
+        "M276 224 H255 Q257 262 276 290 Z"
+    };
+    var lamps = new[]
+    {
+        "M124 31 H146 L142 43 H126 Z",
+        "M236 31 H214 L218 43 H234 Z",
+        "M124 369 H146 L142 381 H126 Z",
+        "M236 369 H214 L218 381 H234 Z"
+    };
+    var wheels = new[] { (26, 112), (26, 322), (334, 112), (334, 322) };
 }
 <div class="damage">
-    <svg class="damage-svg" viewBox="0 0 240 432" role="img" aria-label="Boya ve değişen şeması">
+    <svg class="damage-svg" viewBox="0 14 360 386" role="img" aria-label="Boya ve değişen şeması">
+        <g class="damage-decor">
+            @foreach (var d in bodies)
+            {
+                <path class="body" d="@d" />
+            }
+            @foreach (var d in glass)
+            {
+                <path class="glass" d="@d" />
+            }
+        </g>
         @foreach (var part in Model)
         {
             var s = shapes[part.Part];
             var tooltip = string.IsNullOrEmpty(part.Note) ? $"{part.PartName}: {part.StateName}" : $"{part.PartName}: {part.StateName} ({part.Note})";
-            <rect class="part state-@((int)part.State)" x="@s.X" y="@s.Y" width="@s.W" height="@s.H" rx="6" tabindex="0" data-label="@tooltip">
+            <path class="part state-@((int)part.State)" d="@s.D" tabindex="0" data-label="@tooltip">
                 <title>@tooltip</title>
-            </rect>
+            </path>
         }
-        <text x="120" y="22" class="damage-axis">ÖN</text>
-        <text x="120" y="415" class="damage-axis">ARKA</text>
+        <g class="damage-decor">
+            @foreach (var d in lamps)
+            {
+                <path class="lamp" d="@d" />
+            }
+            @foreach (var (x, y) in wheels)
+            {
+                <circle class="wheel" cx="@x" cy="@y" r="18" />
+                <circle class="hub" cx="@x" cy="@y" r="7.2" />
+            }
+        </g>
+        @foreach (var part in Model.Where(x => x.State != BodyPartState.Original))
+        {
+            var s = shapes[part.Part];
+            @* Razor @foreach içinde <text> etiketini kendine ayırdığı için yazı <g> içine alınır *@
+            <g transform="@(s.Vertical ? $"rotate(-90 {s.X} {s.Y})" : null)"><text class="damage-label label-@((int)part.State)" x="@s.X" y="@s.Y">@part.StateName</text></g>
+        }
+        <g><text x="106" y="37" class="damage-axis">ÖN</text></g>
+        <g><text x="106" y="375" class="damage-axis">ARKA</text></g>
     </svg>
     <div class="damage-side">
         <ul class="legend">

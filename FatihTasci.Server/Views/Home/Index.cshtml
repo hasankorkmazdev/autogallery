@@ -14,6 +14,16 @@
     </div>
 </section>
 
+@if (Model.Brands.Count > 0)
+{
+    <section class="section">
+        <div class="container">
+            <h2 class="section-title">Markalar</h2>
+            <partial name="_BrandStrip" model="Model.Brands" />
+        </div>
+    </section>
+}
+
 @if (Model.Featured.Count > 0)
 {
     <section class="section">
@@ -28,6 +38,8 @@
         </div>
     </section>
 }
+
+<partial name="_Atmosphere" model="Model.Scenes" />
 
 <section class="section">
     <div class="container">
