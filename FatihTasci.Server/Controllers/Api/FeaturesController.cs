@@ -35,4 +35,11 @@ public class FeaturesController : BaseApiController
     {
         return Ok(await _featureService.UpdateAsync(id, request));
     }
+
+    [Authorize(Roles = RoleNames.Admin)]
+    [HttpPut("order")]
+    public async Task<IActionResult> Reorder([FromBody] FeatureOrderRequestModel request)
+    {
+        return Ok(await _featureService.ReorderAsync(request));
+    }
 }

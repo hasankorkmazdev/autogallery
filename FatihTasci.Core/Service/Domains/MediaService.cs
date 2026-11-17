@@ -1,4 +1,5 @@
 using FatihTasci.Core.Entity.Inventory;
+using FatihTasci.Core.Helpers;
 using FatihTasci.Core.Models.Domain;
 using FatihTasci.Core.Models.Domain.Vehicle;
 using FatihTasci.Core.Providers;
@@ -7,9 +8,7 @@ using FatihTasci.Core.Service.Domains.Abstracts;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Webp;
-using SixLabors.ImageSharp.Processing;
+using SkiaSharp;
 
 namespace FatihTasci.Core.Service.Domains;
 
@@ -37,6 +36,7 @@ public class MediaService : DomainService, IMediaService
     private const float WatermarkWidthRatio = 0.16f;
     private const float WatermarkMarginRatio = 0.025f;
     private const float WatermarkOpacity = 0.55f;
+    private static readonly int LargestVariantWidth = Variants.Max(x => x.Width);
 
     private readonly IUnitOfWork _unitOfWork;
     private readonly IRepository<VehicleEntity> _vehicleRepository;
@@ -234,7 +234,7 @@ public class MediaService : DomainService, IMediaService
     /// Bir fotoğrafın varyantlarını orijinalden yeni adlarla üretir, kaydı günceller ve eski dosyaları siler.
     /// Medya uzun süre önbelleğe alındığı için aynı adın üzerine yazılmaz.
     /// </summary>
-    private async Task<bool> RegenerateVariantsAsync(Guid mediaId, Image watermark)
+    private async Task<bool> RegenerateVariantsAsync(Guid mediaId, SKBitmap watermark)
     {
         var media = await _mediaRepository.GetFirstOrDefaultAsync(predicate: x => x.Id == mediaId, disableTracking: false);
         if (media == null)
@@ -250,10 +250,14 @@ public class MediaService : DomainService, IMediaService
         var written = new List<string>();
         try
         {
-            using var image = await Image.LoadAsync(originalPath);
-            PrepareImage(image);
+            using var image = ImageTools.DecodeFile(originalPath, LargestVariantWidth);
+            if (image == null)
+            {
+                _logger.LogWarning("Orijinal fotoğraf okunamadı: {Path}", media.OriginalPath);
+                return false;
+            }
 
-            var (small, medium, large) = await WriteVariantsAsync(image, media.VehicleId, media.Id, watermark, written);
+            var (small, medium, large) = await WriteVariantsAsync(_storage, image, media.VehicleId, media.Id, watermark, written);
             var oldPaths = new List<string> { media.SmallPath, media.MediumPath, media.LargePath };
             media.SmallPath = small;
             media.MediumPath = medium;
@@ -274,7 +278,7 @@ public class MediaService : DomainService, IMediaService
     /// <summary>
     /// Filigran açık ve logo yüklüyse logoyu döner, aksi halde null. Çağıran dispose eder.
     /// </summary>
-    private async Task<Image> LoadWatermarkAsync()
+    private async Task<SKBitmap> LoadWatermarkAsync()
     {
         var settings = await _settingService.GetAsync();
         if (!settings.WatermarkEnabled || string.IsNullOrEmpty(settings.LogoPath))
@@ -284,28 +288,54 @@ public class MediaService : DomainService, IMediaService
         if (!File.Exists(fullPath))
             return null;
 
-        try
-        {
-            return await Image.LoadAsync(fullPath);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Filigran logosu okunamadı: {Path}", settings.LogoPath);
-            return null;
-        }
+        var logo = ImageTools.DecodeFile(fullPath);
+        if (logo == null)
+            _logger.LogWarning("Filigran logosu okunamadı: {Path}", settings.LogoPath);
+        return logo;
     }
 
-    private static void PrepareImage(Image image)
+    /// <summary>
+    /// Fotoğrafı okur; orijinali özel klasöre, 480 / 1280 / 2400 px WebP varyantlarını /media altına yazar (watermark
+    /// null değilse 1280 ve 2400'e basılır). Panel yüklemesi ve geliştirme seed'i (DbSeeder) aynı yolu kullanır.
+    /// Okunamayan dosyada null döner. Yazılan dosyalar listelere eklenir (kaydetme başarısız olursa çağıran siler);
+    /// sıra ve kapak çağırana kalır.
+    /// </summary>
+    public static async Task<VehicleMediaEntity> WriteImageAsync(IMediaStorage storage, Guid vehicleId, Stream source, string extension,
+        SKBitmap watermark, List<string> writtenPublic, List<string> writtenPrivate)
     {
-        // Telefon fotoğraflarındaki yönü uygula, ardından konum dahil tüm metadata'yı temizle.
-        image.Mutate(x => x.AutoOrient());
-        image.Metadata.ExifProfile = null;
-        image.Metadata.XmpProfile = null;
-        image.Metadata.IptcProfile = null;
+        var mediaId = Guid.NewGuid();
+
+        await using var buffer = new MemoryStream();
+        await source.CopyToAsync(buffer);
+
+        // En büyük varyantın altına inmeden çözülür; yön uygulanır, yeniden kodlanan varyantlarda metadata kalmaz.
+        buffer.Position = 0;
+        using var image = ImageTools.Decode(buffer, LargestVariantWidth, 0, out var originalWidth, out var originalHeight);
+        if (image == null)
+            return null;
+
+        var originalPath = $"originals/vehicles/{vehicleId:N}/{mediaId:N}{extension.ToLowerInvariant()}";
+        buffer.Position = 0;
+        await storage.SavePrivateAsync(originalPath, buffer);
+        writtenPrivate.Add(originalPath);
+
+        var entity = new VehicleMediaEntity
+        {
+            Id = mediaId,
+            VehicleId = vehicleId,
+            OriginalPath = originalPath,
+            Width = originalWidth,
+            Height = originalHeight
+        };
+
+        (entity.SmallPath, entity.MediumPath, entity.LargePath) =
+            await WriteVariantsAsync(storage, image, vehicleId, mediaId, watermark, writtenPublic);
+
+        return entity;
     }
 
-    private async Task<(string Small, string Medium, string Large)> WriteVariantsAsync(
-        Image image, Guid vehicleId, Guid mediaId, Image watermark, List<string> writtenPublic)
+    private static async Task<(string Small, string Medium, string Large)> WriteVariantsAsync(
+        IMediaStorage storage, SKBitmap image, Guid vehicleId, Guid mediaId, SKBitmap watermark, List<string> writtenPublic)
     {
         var revision = Guid.NewGuid().ToString("N")[..8];
         string small = null, medium = null, large = null;
@@ -313,17 +343,12 @@ public class MediaService : DomainService, IMediaService
         foreach (var (suffix, width, quality, applyWatermark) in Variants)
         {
             var path = $"vehicles/{vehicleId:N}/{mediaId:N}-{revision}-{suffix}.webp";
-            using var variant = image.Width > width
-                ? image.Clone(x => x.Resize(new ResizeOptions { Size = new Size(width, 0), Mode = ResizeMode.Max }))
-                : image.Clone(_ => { });
-
+            using var variant = ImageTools.ScaleToWidth(image, width);
             if (applyWatermark && watermark != null)
-                ApplyWatermark(variant, watermark);
+                ImageTools.DrawWatermark(variant, watermark, WatermarkWidthRatio, WatermarkMarginRatio, WatermarkOpacity);
 
-            await using var output = new MemoryStream();
-            await variant.SaveAsWebpAsync(output, new WebpEncoder { Quality = quality });
-            output.Position = 0;
-            await _storage.SavePublicAsync(path, output);
+            await using var output = ImageTools.ToWebp(variant, quality);
+            await storage.SavePublicAsync(path, output);
             writtenPublic.Add(path);
 
             switch (suffix)
@@ -337,62 +362,13 @@ public class MediaService : DomainService, IMediaService
         return (small, medium, large);
     }
 
-    private static void ApplyWatermark(Image target, Image logo)
+    private async Task<VehicleMediaEntity> ProcessImageAsync(Guid vehicleId, IFormFile file, SKBitmap watermark, List<string> writtenPublic, List<string> writtenPrivate)
     {
-        var maxWidth = Math.Max(48, (int)(target.Width * WatermarkWidthRatio));
-        var margin = (int)(target.Width * WatermarkMarginRatio);
-
-        using var scaled = logo.Clone(x => x.Resize(new ResizeOptions { Size = new Size(maxWidth, maxWidth), Mode = ResizeMode.Max }));
-        if (scaled.Width + margin * 2 > target.Width || scaled.Height + margin * 2 > target.Height)
-            return; // Çok küçük fotoğraf, filigran sığmıyor
-
-        var location = new Point(target.Width - scaled.Width - margin, target.Height - scaled.Height - margin);
-        target.Mutate(x => x.DrawImage(scaled, location, WatermarkOpacity));
-    }
-
-    private async Task<VehicleMediaEntity> ProcessImageAsync(Guid vehicleId, IFormFile file, Image watermark, List<string> writtenPublic, List<string> writtenPrivate)
-    {
-        var mediaId = Guid.NewGuid();
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-
-        await using var buffer = new MemoryStream();
-        await file.CopyToAsync(buffer);
-
-        Image image;
-        try
-        {
-            buffer.Position = 0;
-            image = await Image.LoadAsync(buffer);
-        }
-        catch (Exception ex) when (ex is UnknownImageFormatException or InvalidImageContentException or NotSupportedException)
-        {
-            _logger.LogWarning(ex, "Fotoğraf okunamadı: {FileName}", file.FileName);
-            return null;
-        }
-
-        using (image)
-        {
-            PrepareImage(image);
-
-            var originalPath = $"originals/vehicles/{vehicleId:N}/{mediaId:N}{extension}";
-            buffer.Position = 0;
-            await _storage.SavePrivateAsync(originalPath, buffer);
-            writtenPrivate.Add(originalPath);
-
-            var entity = new VehicleMediaEntity
-            {
-                Id = mediaId,
-                VehicleId = vehicleId,
-                OriginalPath = originalPath,
-                Width = image.Width,
-                Height = image.Height
-            };
-
-            (entity.SmallPath, entity.MediumPath, entity.LargePath) =
-                await WriteVariantsAsync(image, vehicleId, mediaId, watermark, writtenPublic);
-
-            return entity;
-        }
+        await using var stream = file.OpenReadStream();
+        var media = await WriteImageAsync(_storage, vehicleId, stream, Path.GetExtension(file.FileName), watermark, writtenPublic, writtenPrivate);
+        if (media == null)
+            _logger.LogWarning("Fotoğraf okunamadı: {FileName}", file.FileName);
+        return media;
     }
 
     private async Task<List<VehicleMediaModel>> LoadMediaAsync(Guid vehicleId)

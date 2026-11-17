@@ -28,12 +28,15 @@ public class LeadEntity : BaseAuditableEntity<Guid>
     /// </summary>
     public DateTime? PreferredDate { get; set; }
 
-    // --- Yalnızca "Aracını Sat / Takas" talebinde
+    // --- Yalnızca "Aracını Sat / Takas" talebinde (/hizmetler/aracimi-satmak-istiyorum teklif formu).
+    // Ekrandaki adlarıyla Marka / Model / Paket; ziyaretçi serbest yazar, katalogla eşlenmez.
     public string SellBrand { get; set; }
     public string SellModel { get; set; }
+    public string SellPackage { get; set; }
     public int? SellYear { get; set; }
     public int? SellKm { get; set; }
     public decimal? SellExpectedPrice { get; set; }
+    public SellDamageState? SellDamage { get; set; }
 
     /// <summary>
     /// KVKK açık rızasının verildiği zaman

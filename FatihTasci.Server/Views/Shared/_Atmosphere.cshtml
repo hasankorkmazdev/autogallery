@@ -10,23 +10,8 @@
     <section class="section atmosphere" data-atmosphere aria-labelledby="atmosphere-title">
         <div class="container">
             <div class="atmosphere-head">
-                <div>
-                    <p class="eyebrow">Showroom</p>
-                    <h2 id="atmosphere-title" class="atmosphere-title">Ayrıcalıklı Galeri <em>Atmosferi.</em></h2>
-                </div>
-                <div class="atmosphere-controls">
-                    <span class="atmosphere-counter" aria-live="polite">
-                        <span class="atmosphere-counter-label">Sahne</span>
-                        <strong data-atmosphere-current>01</strong>&nbsp;/&nbsp;@Model.Count.ToString("00")
-                    </span>
-                    <a class="btn btn-pill" href="/iletisim">Ziyaret Planla <span aria-hidden="true">↗</span></a>
-                    <button type="button" class="btn btn-pill" data-atmosphere-full><span aria-hidden="true">⤢</span> Tam Ekran</button>
-                    @if (Model.Count > 1)
-                    {
-                        <button type="button" class="icon-btn" data-atmosphere-prev aria-label="Önceki sahne">←</button>
-                        <button type="button" class="icon-btn" data-atmosphere-next aria-label="Sonraki sahne">→</button>
-                    }
-                </div>
+                <p class="eyebrow">Showroom</p>
+                <h2 id="atmosphere-title" class="atmosphere-title">Ayrıcalıklı Galeri <em>Atmosferi.</em></h2>
             </div>
 
             <div class="atmosphere-track" data-atmosphere-track>
@@ -52,6 +37,14 @@
                     </article>
                 }
             </div>
+
+            @if (Model.Count > 1)
+            {
+                <div class="atmosphere-nav">
+                    <button type="button" class="icon-btn" data-atmosphere-prev aria-label="Önceki sahne">←</button>
+                    <button type="button" class="icon-btn" data-atmosphere-next aria-label="Sonraki sahne">→</button>
+                </div>
+            }
         </div>
 
         <dialog class="lightbox" data-atmosphere-dialog aria-label="Showroom fotoğrafı">

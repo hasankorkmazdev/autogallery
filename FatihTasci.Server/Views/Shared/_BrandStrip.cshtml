@@ -1,7 +1,7 @@
 @model List<FilterOptionModel>
 @*
-    Stokta aracı olan markalar, logolarıyla. Logolar koyu zeminde de okunsun diye açık bir kutuda gösterilir.
-    ViewData["ActiveBrand"]: seçili marka slug'ı (stok sayfasında vurgulanır).
+    İlanda aracı olan markalar, logolarıyla. Logolar koyu zeminde de okunsun diye açık bir kutuda gösterilir.
+    ViewData["ActiveBrand"]: seçili marka slug'ı (ilanlar sayfasında vurgulanır).
 *@
 @{
     var active = ViewData["ActiveBrand"] as string;
@@ -11,7 +11,7 @@
     <nav class="brand-strip" aria-label="Markalar">
         @foreach (var brand in Model)
         {
-            <a class="brand-chip @(brand.Value == active ? "active" : null)" href="/stok/@brand.Value" title="@brand.Label (@brand.Count araç)">
+            <a class="brand-chip @(brand.Value == active ? "active" : null)" href="/ilanlar/@brand.Value" title="@brand.Label (@brand.Count araç)">
                 <span class="brand-logo">
                     @if (!string.IsNullOrEmpty(brand.LogoUrl))
                     {

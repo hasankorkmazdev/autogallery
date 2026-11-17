@@ -1,4 +1,5 @@
 using FatihTasci.Core.Entity.Common;
+using FatihTasci.Core.Helpers;
 using FatihTasci.Core.Models.Domain;
 using FatihTasci.Core.Models.Domain.Showroom;
 using FatihTasci.Core.Providers;
@@ -7,9 +8,7 @@ using FatihTasci.Core.Service.Domains.Abstracts;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Webp;
-using SixLabors.ImageSharp.Processing;
+using SkiaSharp;
 
 namespace FatihTasci.Core.Service.Domains;
 
@@ -169,15 +168,11 @@ public class ShowroomService : DomainService, IShowroomService
         await using var buffer = new MemoryStream();
         await file.CopyToAsync(buffer);
 
-        Image image;
-        try
+        buffer.Position = 0;
+        using var image = ImageTools.Decode(buffer, 2400);
+        if (image == null)
         {
-            buffer.Position = 0;
-            image = await Image.LoadAsync(buffer);
-        }
-        catch (Exception ex) when (ex is UnknownImageFormatException or InvalidImageContentException or NotSupportedException)
-        {
-            _logger.LogWarning(ex, "Showroom fotoğrafı okunamadı: {FileName}", file.FileName);
+            _logger.LogWarning("Showroom fotoğrafı okunamadı: {FileName}", file.FileName);
             return null;
         }
 
@@ -185,30 +180,22 @@ public class ShowroomService : DomainService, IShowroomService
         var fileId = Guid.NewGuid().ToString("N");
         try
         {
-            using (image)
-            {
-                image.Mutate(x => x.AutoOrient());
-                image.Metadata.ExifProfile = null;
-                image.Metadata.XmpProfile = null;
-                image.Metadata.IptcProfile = null;
+            var originalPath = $"originals/showroom/{fileId}{extension}";
+            buffer.Position = 0;
+            await _storage.SavePrivateAsync(originalPath, buffer);
+            written.Add((false, originalPath));
 
-                var originalPath = $"originals/showroom/{fileId}{extension}";
-                buffer.Position = 0;
-                await _storage.SavePrivateAsync(originalPath, buffer);
-                written.Add((false, originalPath));
+            var mediumPath = $"showroom/{fileId}-1280.webp";
+            await SaveVariantAsync(image, 1280, 80, mediumPath);
+            written.Add((true, mediumPath));
 
-                var mediumPath = $"showroom/{fileId}-1280.webp";
-                await SaveVariantAsync(image, 1280, 80, mediumPath);
-                written.Add((true, mediumPath));
+            var largePath = $"showroom/{fileId}-2400.webp";
+            await SaveVariantAsync(image, 2400, 82, largePath);
+            written.Add((true, largePath));
 
-                var largePath = $"showroom/{fileId}-2400.webp";
-                await SaveVariantAsync(image, 2400, 82, largePath);
-                written.Add((true, largePath));
-
-                scene.OriginalPath = originalPath;
-                scene.MediumPath = mediumPath;
-                scene.LargePath = largePath;
-            }
+            scene.OriginalPath = originalPath;
+            scene.MediumPath = mediumPath;
+            scene.LargePath = largePath;
         }
         catch
         {
@@ -219,15 +206,10 @@ public class ShowroomService : DomainService, IShowroomService
         return written;
     }
 
-    private async Task SaveVariantAsync(Image image, int width, int quality, string path)
+    private async Task SaveVariantAsync(SKBitmap image, int width, int quality, string path)
     {
-        using var variant = image.Width > width
-            ? image.Clone(x => x.Resize(new ResizeOptions { Size = new Size(width, 0), Mode = ResizeMode.Max }))
-            : image.Clone(_ => { });
-
-        await using var output = new MemoryStream();
-        await variant.SaveAsWebpAsync(output, new WebpEncoder { Quality = quality });
-        output.Position = 0;
+        using var variant = ImageTools.ScaleToWidth(image, width);
+        await using var output = ImageTools.ToWebp(variant, quality);
         await _storage.SavePublicAsync(path, output);
     }
 

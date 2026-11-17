@@ -59,8 +59,8 @@ export default function VehiclesPage() {
     <PageLayout>
       <PageHeader
         title="Araçlar"
-        description="Stoktaki araçları yönetin, yenisini ekleyin ya da durumunu değiştirin."
-        icon={<Car className="w-8 h-8" />}
+        description="Araç ilanlarını yönetin, yenisini ekleyin ya da durumunu değiştirin."
+        icon={<Car />}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="icon" title="Yenile" onClick={() => setRefreshId((x) => x + 1)}>

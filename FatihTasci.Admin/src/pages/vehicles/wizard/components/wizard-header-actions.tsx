@@ -38,9 +38,10 @@ export function WizardHeaderActions({ vehicle, onCopied }: WizardHeaderActionsPr
           </a>
         </Button>
       )}
-      <Button variant="outline" onClick={handleCopy} title="Aynı modelden yeni bir taslak oluşturur">
+      <Button variant="outline" onClick={handleCopy} title="Aynı paketten yeni bir taslak oluşturur">
         <Copy className="w-4 h-4 mr-2" />
-        Benzer ilan olarak kopyala
+        <span className="sm:hidden">Kopyala</span>
+        <span className="max-sm:hidden">Benzer ilan olarak kopyala</span>
       </Button>
     </div>
   );

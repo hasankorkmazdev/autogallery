@@ -1,30 +1,23 @@
 import axios, { isAxiosError } from "axios";
 import type { ServiceResult } from "@/api/types";
+import { useAuthStore } from "@/store/auth-store";
 
 // Panel ve API aynı origin'den sunulur (geliştirmede Vite proxy'si ile).
+// Oturum token'ı HttpOnly çerezdedir; tarayıcı her istekte kendisi gönderir, JS okuyamaz.
+// X-Requested-With: sunucu durum değiştiren isteklerde CSRF kontrolü için bu başlığı ister.
 export const api = axios.create({
   baseURL: "/api",
   headers: {
     "Content-Type": "application/json",
+    "X-Requested-With": "XMLHttpRequest",
   },
-});
-
-api.interceptors.request.use((config) => {
-  const storage = localStorage.getItem("auth-storage");
-  if (storage) {
-    const token = JSON.parse(storage).state?.token;
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  }
-  return config;
 });
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem("auth-storage");
+      useAuthStore.getState().logout();
       window.location.href = `${import.meta.env.BASE_URL}login`;
     }
     return Promise.reject(error);

@@ -23,16 +23,18 @@ const isVisibleOnSite = (status: VehicleStatusValue) =>
 // Listeden tek tıkla Rezerve / Satıldı.
 export function VehicleRowActions({ vehicle, onStatusChange, onCopy }: VehicleRowActionsProps) {
   const navigate = useNavigate();
+  const canReserve = vehicle.status === VehicleStatus.Published;
+  const canSell = vehicle.status === VehicleStatus.Published || vehicle.status === VehicleStatus.Reserved;
 
   return (
     <div className="flex items-center justify-end gap-1">
-      {vehicle.status === VehicleStatus.Published && (
-        <Button variant="outline" size="sm" onClick={() => onStatusChange(vehicle, VehicleStatus.Reserved)}>
+      {canReserve && (
+        <Button variant="outline" size="sm" className="max-xl:hidden" onClick={() => onStatusChange(vehicle, VehicleStatus.Reserved)}>
           Rezerve
         </Button>
       )}
-      {(vehicle.status === VehicleStatus.Published || vehicle.status === VehicleStatus.Reserved) && (
-        <Button variant="outline" size="sm" onClick={() => onStatusChange(vehicle, VehicleStatus.Sold)}>
+      {canSell && (
+        <Button variant="outline" size="sm" className="max-xl:hidden" onClick={() => onStatusChange(vehicle, VehicleStatus.Sold)}>
           Satıldı
         </Button>
       )}
@@ -57,6 +59,17 @@ export function VehicleRowActions({ vehicle, onStatusChange, onCopy }: VehicleRo
             <Copy /> Benzer ilan olarak kopyala
           </DropdownMenuItem>
           <DropdownMenuSeparator />
+          {/* Dar ekranda tek tık butonları yer kaplamasın diye burada */}
+          {canReserve && (
+            <DropdownMenuItem className="xl:hidden" onClick={() => onStatusChange(vehicle, VehicleStatus.Reserved)}>
+              Rezerve
+            </DropdownMenuItem>
+          )}
+          {canSell && (
+            <DropdownMenuItem className="xl:hidden" onClick={() => onStatusChange(vehicle, VehicleStatus.Sold)}>
+              Satıldı
+            </DropdownMenuItem>
+          )}
           {vehicle.status === VehicleStatus.Reserved && (
             <DropdownMenuItem onClick={() => onStatusChange(vehicle, VehicleStatus.Published)}>
               Rezervasyonu kaldır

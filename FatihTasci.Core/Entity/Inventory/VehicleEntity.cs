@@ -80,8 +80,23 @@ public class VehicleEntity : BaseAuditableEntity<Guid>
     /// </summary>
     public string Description { get; set; }
 
+    /// <summary>
+    /// İlan yetkilisi (satış danışmanı). Boşsa sitede yalnız galeri telefonu görünür.
+    /// </summary>
+    public string ContactName { get; set; }
+
+    /// <summary>
+    /// İlanın iletişim telefonu. Doluysa sitede "Ara" bu numarayı arar; cep telefonuysa WhatsApp da bu numaraya gider.
+    /// </summary>
+    public string ContactPhone { get; set; }
+
     public bool IsFeatured { get; set; }
     public int FeaturedOrder { get; set; }
+
+    /// <summary>
+    /// Fırsat aracı: ana sayfadaki "Fırsat Araçları" şeridinde gösterilir (panelde Fiyat adımında işaretlenir).
+    /// </summary>
+    public bool IsOpportunity { get; set; }
 
     public int ViewCount { get; set; }
     public DateTime? PublishedAt { get; set; }

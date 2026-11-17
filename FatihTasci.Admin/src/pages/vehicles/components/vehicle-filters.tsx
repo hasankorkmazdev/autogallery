@@ -20,7 +20,7 @@ export function VehicleFilters({ search, status, onSearchChange, onStatusChange 
       <Input
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
-        placeholder="Başlık, marka, model ya da ilan no ile ara"
+        placeholder="Başlık, marka, model, paket ya da ilan no ile ara"
         aria-label="Araç ara"
         autoComplete="off"
         className="md:w-80"

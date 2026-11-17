@@ -245,3 +245,82 @@ public enum SlugEntityType
     Series = 2,
     CarModel = 3
 }
+
+/// <summary>
+/// Ayarlardaki sosyal medya / mağaza bağlantılarının platformu. Vitrinde simgesi _SocialLinks.cshtml'dedir.
+/// </summary>
+public enum SocialPlatform
+{
+    [Display(Name = "Instagram")]
+    Instagram = 1,
+
+    [Display(Name = "Facebook")]
+    Facebook = 2,
+
+    [Display(Name = "X (Twitter)")]
+    X = 3,
+
+    [Display(Name = "YouTube")]
+    YouTube = 4,
+
+    [Display(Name = "TikTok")]
+    TikTok = 5,
+
+    [Display(Name = "LinkedIn")]
+    LinkedIn = 6,
+
+    [Display(Name = "Threads")]
+    Threads = 7,
+
+    [Display(Name = "Telegram")]
+    Telegram = 8,
+
+    [Display(Name = "Pinterest")]
+    Pinterest = 9,
+
+    [Display(Name = "Sahibinden mağazası")]
+    Sahibinden = 20,
+
+    [Display(Name = "arabam.com mağazası")]
+    Arabam = 21,
+
+    [Display(Name = "Diğer")]
+    Other = 99
+}
+
+/// <summary>
+/// Vitrindeki Hizmetler. Ekrandaki ad hizmet sayfasının başlığıdır, adresi bu addan SlugHelper ile üretilir
+/// (/hizmetler/arac-almak-istiyorum). Sıra vitrindeki sıradır; yazıları panelde Site İçeriği'nden düzenlenir.
+/// </summary>
+public enum SiteServiceType
+{
+    [Display(Name = "Araç Almak İstiyorum")]
+    BuyVehicle = 1,
+
+    [Display(Name = "Konsinye Satış")]
+    Consignment = 2,
+
+    [Display(Name = "Aracımı Satmak İstiyorum")]
+    SellVehicle = 3
+}
+
+/// <summary>
+/// "Aracımı Satmak İstiyorum" teklif formunda ziyaretçinin bildirdiği hasar durumu (talepte özet olarak saklanır).
+/// </summary>
+public enum SellDamageState
+{
+    [Display(Name = "Hasarsız, boyasız")]
+    None = 1,
+
+    [Display(Name = "Boyalı parça var")]
+    Painted = 2,
+
+    [Display(Name = "Değişen parça var")]
+    Replaced = 3,
+
+    [Display(Name = "Ağır hasar kayıtlı")]
+    HeavyDamage = 4,
+
+    [Display(Name = "Emin değilim")]
+    Unknown = 5
+}

@@ -2,6 +2,7 @@
 @{
     var notFound = Model == 404;
     ViewData["Title"] = notFound ? "Sayfa bulunamadı" : "Bir hata oluştu";
+    ViewData["Robots"] = "noindex";
 }
 <section class="section">
     <div class="container narrow center">
@@ -9,14 +10,14 @@
         <h1 class="display">@ViewData["Title"]</h1>
         @if (notFound)
         {
-            <p class="muted">Aradığınız sayfa kaldırılmış ya da adresi değişmiş olabilir. Araç satılmış olabilir; stoğumuzdaki diğer araçlara göz atabilirsiniz.</p>
+            <p class="muted">Aradığınız sayfa kaldırılmış ya da adresi değişmiş olabilir. Araç satılmış olabilir; diğer ilanlarımıza göz atabilirsiniz.</p>
         }
         else
         {
             <p class="muted">İsteğiniz işlenirken beklenmeyen bir sorun oluştu. Lütfen biraz sonra tekrar deneyin.</p>
         }
         <div class="hero-actions">
-            <a class="btn btn-primary" href="/stok">Stoğa Dön</a>
+            <a class="btn btn-primary" href="/ilanlar">İlanlara Dön</a>
             <a class="btn btn-outline" href="/">Ana Sayfa</a>
         </div>
     </div>

@@ -1,0 +1,12 @@
+@model int
+@* Teslimat fotoğrafının tam ekran hali; model = bölümdeki teslimat sayısı (birden fazlaysa oklar görünür). *@
+<dialog class="lightbox" data-deliveries-dialog aria-label="Teslimat fotoğrafı">
+    <img class="lightbox-img" data-deliveries-dialog-img src="" alt="" />
+    <p class="lightbox-caption delivery-lightbox-caption" data-deliveries-dialog-caption></p>
+    <button type="button" class="icon-btn lightbox-close" data-deliveries-close aria-label="Kapat">✕</button>
+    @if (Model > 1)
+    {
+        <button type="button" class="icon-btn lightbox-prev" data-deliveries-dialog-prev aria-label="Önceki fotoğraf">←</button>
+        <button type="button" class="icon-btn lightbox-next" data-deliveries-dialog-next aria-label="Sonraki fotoğraf">→</button>
+    }
+</dialog>

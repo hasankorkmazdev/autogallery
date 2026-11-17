@@ -343,8 +343,8 @@ namespace FatihTasci.Data.Migrations
                         .HasColumnType("nvarchar(60)");
 
                     b.Property<string>("Value")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
 
                     b.HasKey("Id");
 
@@ -389,6 +389,82 @@ namespace FatihTasci.Data.Migrations
                     b.HasIndex("EntityType", "ParentId", "OldSlug");
 
                     b.ToTable("SlugRedirects", "Common");
+                });
+
+            modelBuilder.Entity("FatihTasci.Core.Entity.Crm.DeliveryEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnOrder(0);
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("City")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnOrder(1000);
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnOrder(1003);
+
+                    b.Property<string>("CustomerName")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<DateTime>("DeliveredAt")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnOrder(1);
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("bit")
+                        .HasColumnOrder(2);
+
+                    b.Property<string>("LargePath")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<DateTime?>("LastDeleteDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnOrder(1002);
+
+                    b.Property<Guid?>("LastDeletedBy")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnOrder(1004);
+
+                    b.Property<DateTime?>("LastUpdateDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnOrder(1001);
+
+                    b.Property<Guid?>("LastUpdatedBy")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnOrder(1005);
+
+                    b.Property<string>("MediumPath")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("OriginalPath")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("VehicleTitle")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive", "DeliveredAt");
+
+                    b.ToTable("Deliveries", "Crm");
                 });
 
             modelBuilder.Entity("FatihTasci.Core.Entity.Crm.LeadEntity", b =>
@@ -465,6 +541,9 @@ namespace FatihTasci.Data.Migrations
                         .HasMaxLength(60)
                         .HasColumnType("nvarchar(60)");
 
+                    b.Property<int?>("SellDamage")
+                        .HasColumnType("int");
+
                     b.Property<decimal?>("SellExpectedPrice")
                         .HasColumnType("decimal(18,2)");
 
@@ -472,6 +551,10 @@ namespace FatihTasci.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("SellModel")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("SellPackage")
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
 
@@ -514,9 +597,12 @@ namespace FatihTasci.Data.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("LeadId");
+                    b.HasIndex("LeadId", "SortOrder");
 
                     b.ToTable("LeadMedia", "Crm");
                 });
@@ -699,6 +785,14 @@ namespace FatihTasci.Data.Migrations
                     b.Property<int>("Condition")
                         .HasColumnType("int");
 
+                    b.Property<string>("ContactName")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("ContactPhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("datetime2")
                         .HasColumnOrder(1000);
@@ -748,6 +842,9 @@ namespace FatihTasci.Data.Migrations
                         .HasColumnOrder(2);
 
                     b.Property<bool>("IsFeatured")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsOpportunity")
                         .HasColumnType("bit");
 
                     b.Property<int?>("Kilometer")

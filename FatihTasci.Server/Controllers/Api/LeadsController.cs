@@ -26,6 +26,21 @@ public class LeadsController : BaseApiController
         return Ok(await _leadService.GetNewCountAsync());
     }
 
+    /// <summary>
+    /// "Aracını Sat" talebinin fotoğrafı. Dosya özel klasörde durur, yalnız oturum açmış personel alır;
+    /// tarayıcı panel kapandıktan sonra uzun süre saklamasın diye önbellek kısa ve özeldir.
+    /// </summary>
+    [HttpGet("{id:guid}/media/{mediaId:guid}")]
+    public async Task<IActionResult> GetMedia(Guid id, Guid mediaId)
+    {
+        var result = await _leadService.GetMediaFileAsync(id, mediaId);
+        if (result.Data == null)
+            return Ok(result);
+
+        Response.Headers.CacheControl = "private, max-age=3600";
+        return PhysicalFile(result.Data, "image/webp");
+    }
+
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateLeadRequestModel request)
     {

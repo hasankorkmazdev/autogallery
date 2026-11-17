@@ -1,5 +1,6 @@
 @model PublicVehicleDetailModel
 @inject FatihTasci.Core.Service.Domains.Abstracts.ISiteSettingService SettingService
+@inject FatihTasci.Core.Service.Domains.Abstracts.IShareImageService ShareImages
 @{
     var settings = await SettingService.GetAsync();
     var price = SiteFormat.EffectivePrice(Model.Price, Model.CampaignPrice, Model.ShowPrice);
@@ -10,33 +11,57 @@
     var badge = SiteFormat.StatusBadge(Model.Status);
     var isSold = Model.Status == VehicleStatus.Sold;
     var whatsAppMessage = $"Merhaba, {Model.ListingNo} numaralı ilan ({Model.Title}) hakkında bilgi almak istiyorum.";
-    var whatsApp = SiteFormat.WhatsAppLink(settings.WhatsApp, whatsAppMessage);
-    var tel = SiteFormat.TelLink(settings.Phone);
+    // İlan yetkilisinin telefonu varsa "Ara" onu arar; cep telefonuysa WhatsApp da ona gider.
+    var contactPhone = string.IsNullOrWhiteSpace(Model.ContactPhone) ? settings.Phone : Model.ContactPhone;
+    var whatsAppNumber = SiteFormat.MobileToWhatsApp(Model.ContactPhone) ?? settings.WhatsApp;
+    var whatsApp = SiteFormat.WhatsAppLink(whatsAppNumber, whatsAppMessage);
+    var tel = SiteFormat.TelLink(contactPhone);
     var cover = Model.Images.FirstOrDefault();
 
+    var baseUrl = Urls.Base(Context.Request);
+    var shareCard = ShareCards.ForVehicle(Model.Share, settings);
+    var effectivePrice = SiteFormat.HasCampaign(Model.Price, Model.CampaignPrice, Model.ShowPrice) ? Model.CampaignPrice : Model.Price;
+
     ViewData["Title"] = Model.Title;
-    ViewData["Description"] = $"{Model.Title} — {string.Join(" · ", Model.Summary)}. {(isSold ? "Satıldı." : price)}";
+    ViewData["Description"] = $"{Model.Title} — {string.Join(" · ", Model.Summary)}. {(isSold ? "Satıldı" : price)}. İlan No: {Model.ListingNo}.";
     ViewData["Canonical"] = Model.Url;
+    // Paylaşım görseli: içerik (fiyat, başlık, kapak) değişince ?v= de değişir, platformlar yeni görseli çeker.
+    ViewData["OgImage"] = ShareCards.VehicleImagePath(Model.ListingNo, ShareImages.ComputeVersion(shareCard));
+    ViewData["OgImageAlt"] = Model.Title;
+    ViewData["OgType"] = "product";
     ViewData["WhatsAppMessage"] = whatsAppMessage;
-    if (cover != null)
+    ViewData["PageWhatsApp"] = whatsApp;
+    ViewData["PageTel"] = tel;
+}
+@section Head {
+    @if (!isSold && Model.ShowPrice && effectivePrice > 0)
     {
-        ViewData["OgImage"] = cover.MediumUrl;
+        <meta property="product:price:amount" content="@effectivePrice.Value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)" />
+        <meta property="product:price:currency" content="TRY" />
     }
+    <meta property="product:availability" content="@(isSold ? "out of stock" : "in stock")" />
+    <meta property="product:condition" content="@(Model.Condition == VehicleCondition.New ? "new" : "used")" />
+    @StructuredData.Script(StructuredData.Vehicle(Model, settings, baseUrl))
+    @StructuredData.Script(StructuredData.Breadcrumb(baseUrl,
+        ("Ana Sayfa", "/"), ("Tüm İlanlar", "/ilanlar"),
+        (Model.BrandName, $"/ilanlar/{Model.BrandSlug}"),
+        (Model.SeriesName, $"/ilanlar/{Model.BrandSlug}/{Model.SeriesSlug}"),
+        (Model.Title, Model.Url)))
 }
 
 <section class="section vehicle">
     <div class="container">
         <nav class="breadcrumb" aria-label="Konum">
-            <a href="/">Ana Sayfa</a> / <a href="/stok">Stok</a> /
-            <a href="/stok/@Model.BrandSlug">@Model.BrandName</a> /
-            <a href="/stok/@Model.BrandSlug/@Model.SeriesSlug">@Model.SeriesName</a>
+            <a href="/">Ana Sayfa</a> / <a href="/ilanlar">Tüm İlanlar</a> /
+            <a href="/ilanlar/@Model.BrandSlug">@Model.BrandName</a> /
+            <a href="/ilanlar/@Model.BrandSlug/@Model.SeriesSlug">@Model.SeriesName</a>
         </nav>
 
         <div class="vehicle-head">
             <div class="vehicle-title">
                 @if (!string.IsNullOrEmpty(Model.BrandLogoUrl))
                 {
-                    <a class="brand-logo brand-logo-lg" href="/stok/@Model.BrandSlug" title="@Model.BrandName stoğu"><img src="@Model.BrandLogoUrl" alt="@Model.BrandName" width="56" height="56" /></a>
+                    <a class="brand-logo brand-logo-lg" href="/ilanlar/@Model.BrandSlug" title="@Model.BrandName ilanları"><img src="@Model.BrandLogoUrl" alt="@Model.BrandName" width="56" height="56" /></a>
                 }
                 <div>
                 <h1 class="display">@Model.Title</h1>
@@ -202,6 +227,13 @@
                             <p class="price-saving">Kampanya: @saving indirim</p>
                         }
                     }
+                    @if (!string.IsNullOrWhiteSpace(Model.ContactName))
+                    {
+                        <div class="contact-person">
+                            <span class="muted">İlan yetkilisi</span>
+                            <strong>@Model.ContactName</strong>
+                        </div>
+                    }
                     <div class="contact-actions">
                         @if (whatsApp != null)
                         {
@@ -209,9 +241,13 @@
                         }
                         @if (tel != null)
                         {
-                            <a class="btn btn-outline" href="@tel">Ara: @settings.Phone</a>
+                            <a class="btn btn-outline" href="@tel">Ara: @contactPhone</a>
                         }
                     </div>
+                    @if (!isSold && MapLinks.HasLocation(settings))
+                    {
+                        <p class="contact-location muted">Aracı galerimizde görebilirsiniz. <a href="@MapLinks.Directions(settings)" target="_blank" rel="noopener">Yol tarifi al</a></p>
+                    }
 
                     @if (!isSold)
                     {

@@ -29,7 +29,6 @@ export interface SaveModelRequest {
 export interface SaveFeatureRequest {
   category: number;
   name: string;
-  sortOrder: number;
   isActive: boolean;
 }
 
@@ -64,4 +63,7 @@ export const catalogService = {
     unwrapWithMessage(api.post<ServiceResult<Feature>>("/features", request)),
   updateFeature: (id: number, request: SaveFeatureRequest) =>
     unwrapWithMessage(api.put<ServiceResult<Feature>>(`/features/${id}`, request)),
+  /** Kategorideki tüm donanımların (pasifler dahil) yeni sırası; güncel listeyi döner. */
+  reorderFeatures: (category: number, featureIds: number[]) =>
+    unwrapWithMessage(api.put<ServiceResult<FeatureGroup[]>>("/features/order", { category, featureIds })),
 };

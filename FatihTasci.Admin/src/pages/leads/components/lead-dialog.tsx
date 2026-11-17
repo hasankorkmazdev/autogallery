@@ -16,8 +16,11 @@ import { FieldGroup } from "@/components/ui/field";
 import { SelectField, TextareaField } from "@/components/form/form-fields";
 import { leadsService } from "@/api/services/leads.service";
 import type { Lead } from "@/api/types";
-import { formatDate, formatDateTime, publicSiteUrl } from "@/lib/format";
+import { formatDate, formatDateTime, formatKm, formatPrice, publicSiteUrl } from "@/lib/format";
 import { labelOf, useLookupStore } from "@/store/lookup-store";
+
+// LeadType.SellOrTrade: vitrindeki "Aracımı Satmak İstiyorum" fotoğraflı teklif formu
+const SELL_OR_TRADE = 3;
 
 const schema = z.object({
   status: z.number(),
@@ -36,6 +39,44 @@ function Detail({ label, children }: { label: string; children: React.ReactNode 
     <div className="flex flex-col gap-1">
       <span className="text-xs text-muted-foreground">{label}</span>
       <span className="text-sm">{children}</span>
+    </div>
+  );
+}
+
+// Teklif formundan gelen araç bilgileri (Marka / Model / Paket, yıl, km, hasar, beklenen fiyat).
+function SellDetails({ lead }: { lead: Lead }) {
+  const lookups = useLookupStore((state) => state.lookups);
+  const vehicle = [lead.sellBrand, lead.sellModel, lead.sellPackage].filter(Boolean).join(" / ");
+  return (
+    <>
+      <div className="col-span-2">
+        <Detail label="Araç (Marka / Model / Paket)">{vehicle || "-"}</Detail>
+      </div>
+      <Detail label="Model yılı">{lead.sellYear ?? "-"}</Detail>
+      <Detail label="Kilometre">{formatKm(lead.sellKm)}</Detail>
+      <Detail label="Hasar durumu">{labelOf(lookups?.sellDamage, lead.sellDamage)}</Detail>
+      <Detail label="Beklenen fiyat">{formatPrice(lead.sellExpectedPrice)}</Detail>
+    </>
+  );
+}
+
+// Talep fotoğrafları oturumla korunan API ucundan gelir; tıklayınca tam boyu yeni sekmede açılır.
+function LeadPhotos({ lead }: { lead: Lead }) {
+  if (lead.media.length === 0) {
+    return <Detail label="Fotoğraflar">Fotoğraf eklenmemiş.</Detail>;
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-xs text-muted-foreground">Fotoğraflar ({lead.media.length})</span>
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+        {lead.media.map((media, index) => (
+          <a key={media.id} href={media.url} target="_blank" rel="noreferrer"
+            className="block aspect-[4/3] overflow-hidden rounded-md border bg-muted">
+            <img src={media.url} alt={`Fotoğraf ${index + 1}`} loading="lazy"
+              className="size-full object-cover transition-opacity hover:opacity-90" />
+          </a>
+        ))}
+      </div>
     </div>
   );
 }
@@ -65,9 +106,11 @@ export function LeadDialog({ lead, onOpenChange, onSaved }: LeadDialogProps) {
     }
   };
 
+  const isSell = lead?.type === SELL_OR_TRADE;
+
   return (
     <Dialog open={lead !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className={isSell ? "max-w-2xl" : "max-w-lg"}>
         <DialogHeader>
           <DialogTitle>{lead?.fullName}</DialogTitle>
           <DialogDescription>
@@ -80,19 +123,31 @@ export function LeadDialog({ lead, onOpenChange, onSaved }: LeadDialogProps) {
               <a href={`tel:${lead.phone}`} className="underline">{lead.phone}</a>
             </Detail>
             <Detail label="E-posta">{lead.email ?? "-"}</Detail>
-            <Detail label="Araç">
-              {lead.vehicleListingNo ? (
-                <a href={publicSiteUrl(`/arac/${lead.vehicleListingNo}`)} target="_blank" rel="noreferrer" className="underline">
-                  {lead.vehicleTitle} ({lead.vehicleListingNo})
-                </a>
-              ) : (
-                "-"
-              )}
-            </Detail>
-            <Detail label="Tercih edilen tarih">{formatDate(lead.preferredDate)}</Detail>
+            {isSell && <SellDetails lead={lead} />}
+            {!isSell && (
+              <>
+                <Detail label="Araç">
+                  {lead.vehicleListingNo ? (
+                    <a href={publicSiteUrl(`/arac/${lead.vehicleListingNo}`)} target="_blank" rel="noreferrer" className="underline">
+                      {lead.vehicleTitle} ({lead.vehicleListingNo})
+                    </a>
+                  ) : (
+                    "-"
+                  )}
+                </Detail>
+                <Detail label="Tercih edilen tarih">{formatDate(lead.preferredDate)}</Detail>
+              </>
+            )}
             <div className="col-span-2">
-              <Detail label="Mesaj">{lead.message ?? "-"}</Detail>
+              <Detail label={isSell ? "Hasar ve ek bilgiler" : "Mesaj"}>
+                <span className="whitespace-pre-line">{lead.message ?? "-"}</span>
+              </Detail>
             </div>
+            {isSell && (
+              <div className="col-span-2">
+                <LeadPhotos lead={lead} />
+              </div>
+            )}
             <div className="col-span-2">
               <Detail label="KVKK onayı">{formatDateTime(lead.kvkkConsentAt)}</Detail>
             </div>

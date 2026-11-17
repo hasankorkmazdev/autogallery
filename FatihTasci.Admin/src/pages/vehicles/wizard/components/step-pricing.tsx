@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useSearchParams } from "react-router-dom";
 import { FieldGroup } from "@/components/ui/field";
 import { NumberField, SwitchField, TextareaField } from "@/components/form/form-fields";
+import { InputField } from "@/components/ui/input-field";
 import { vehiclesService } from "@/api/services/vehicles.service";
 import { pricingSchema, type PricingValues } from "../schemas";
 import { useStepSave } from "../hooks/use-step-form";
@@ -23,8 +24,11 @@ export function StepPricing({ vehicle, onSaved, registerSave, beforeStatusChange
       campaignPrice: vehicle.campaignPrice,
       showPrice: vehicle.showPrice,
       description: vehicle.description ?? "",
+      contactName: vehicle.contactName ?? "",
+      contactPhone: vehicle.contactPhone ?? "",
       isFeatured: vehicle.isFeatured,
       featuredOrder: vehicle.featuredOrder,
+      isOpportunity: vehicle.isOpportunity,
     },
   });
   const { errors } = form.formState;
@@ -42,8 +46,11 @@ export function StepPricing({ vehicle, onSaved, registerSave, beforeStatusChange
         campaignPrice: v.campaignPrice,
         showPrice: v.showPrice,
         description: v.description.trim() || null,
+        contactName: v.contactName || null,
+        contactPhone: v.contactPhone || null,
         isFeatured: v.isFeatured,
         featuredOrder: v.featuredOrder,
+        isOpportunity: v.isOpportunity,
       }),
   });
 
@@ -70,9 +77,17 @@ export function StepPricing({ vehicle, onSaved, registerSave, beforeStatusChange
           <TextareaField id="description" label="Açıklama" rows={8} maxLength={10000}
             description="Aracın hikâyesi, bakım geçmişi, ekstra bilgiler. Satır sonları korunur."
             error={errors.description?.message} {...form.register("description")} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <InputField id="contactName" label="İlan yetkilisi" maxLength={80} autoComplete="off"
+              description="Sitede ilanın iletişim kutusunda görünür, örn. Ahmet Yılmaz."
+              error={errors.contactName?.message} {...form.register("contactName")} />
+            <InputField id="contactPhone" label="Yetkili telefonu" type="tel" maxLength={20} autoComplete="off"
+              description="Boşsa galeri telefonu kullanılır. Cep telefonuysa WhatsApp da bu numaraya gider."
+              error={errors.contactPhone?.message} {...form.register("contactPhone")} />
+          </div>
           <Controller control={form.control} name="isFeatured" render={({ field }) => (
             <SwitchField id="isFeatured" label="Vitrinde öne çıkar"
-              description="Ana sayfadaki &quot;Öne Çıkanlar&quot; bölümünde gösterilir." checked={field.value} onChange={field.onChange} />
+              description="Ana sayfanın ilk ekranındaki vitrin mozaiğinde gösterilir (en çok 5 araç; eksikse en yeniler eklenir)." checked={field.value} onChange={field.onChange} />
           )} />
           {isFeatured && (
             <Controller control={form.control} name="featuredOrder" render={({ field }) => (
@@ -81,6 +96,10 @@ export function StepPricing({ vehicle, onSaved, registerSave, beforeStatusChange
                 value={field.value} onChange={(v) => field.onChange(v ?? 0)} />
             )} />
           )}
+          <Controller control={form.control} name="isOpportunity" render={({ field }) => (
+            <SwitchField id="isOpportunity" label="Fırsat aracı"
+              description="Ana sayfadaki &quot;Fırsat Araçları&quot; şeridinde adı ve fiyatıyla akar." checked={field.value} onChange={field.onChange} />
+          )} />
         </FieldGroup>
       </form>
       <PublishPanel

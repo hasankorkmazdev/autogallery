@@ -33,7 +33,9 @@ export type Lookups = Record<
   | "featureCategory"
   | "leadType"
   | "leadStatus"
-  | "userRole",
+  | "sellDamage"
+  | "userRole"
+  | "socialPlatform",
   EnumOption[]
 >;
 
@@ -102,9 +104,9 @@ export interface SaveUserRequest {
   password?: string;
 }
 
+/** Token yanıtta dönmez, sunucu HttpOnly çereze yazar. */
 export interface LoginResponse {
   user: User;
-  token: string;
   expiresAt: string;
 }
 
@@ -176,6 +178,7 @@ export interface VehicleListItem {
   coverUrl: string | null;
   photoCount: number;
   isFeatured: boolean;
+  isOpportunity: boolean;
   publicUrl: string;
   createDate: string;
   lastUpdateDate: string | null;
@@ -239,8 +242,11 @@ export interface VehicleDetail {
   campaignPrice: number | null;
   showPrice: boolean;
   description: string | null;
+  contactName: string | null;
+  contactPhone: string | null;
   isFeatured: boolean;
   featuredOrder: number;
+  isOpportunity: boolean;
   viewCount: number;
   publishedAt: string | null;
   soldAt: string | null;
@@ -274,8 +280,25 @@ export interface Lead {
   vehicleId: string | null;
   vehicleListingNo: number | null;
   vehicleTitle: string | null;
+  // Yalnız "Aracını Sat / Takas" talebinde (vitrindeki fotoğraflı teklif formu)
+  sellBrand: string | null;
+  sellModel: string | null;
+  sellPackage: string | null;
+  sellYear: number | null;
+  sellKm: number | null;
+  sellExpectedPrice: number | null;
+  sellDamage: number | null;
+  media: LeadMedia[];
   kvkkConsentAt: string;
   createDate: string;
+}
+
+/**
+ * Talep fotoğrafı. url oturum çereziyle erişilen API ucudur (/api/leads/{id}/media/{mediaId}).
+ */
+export interface LeadMedia {
+  id: string;
+  url: string;
 }
 
 // --- Showroom (ana sayfa "Galeri Atmosferi")
@@ -296,6 +319,31 @@ export interface SaveShowroomScene {
   isActive: boolean;
 }
 
+// --- Teslimatlar
+
+export interface Delivery {
+  id: number;
+  vehicleTitle: string;
+  customerName: string | null;
+  city: string | null;
+  /** Teslim tarihi (gün; saat 00:00) */
+  deliveredAt: string;
+  isActive: boolean;
+  /** 800 px WebP (kart) */
+  mediumUrl: string | null;
+  /** 1600 px WebP (tam ekran) */
+  largeUrl: string | null;
+}
+
+export interface SaveDelivery {
+  vehicleTitle: string;
+  customerName: string;
+  city: string;
+  /** yyyy-MM-dd */
+  deliveredAt: string;
+  isActive: boolean;
+}
+
 // --- Ayarlar
 
 export interface SiteSettings {
@@ -311,10 +359,63 @@ export interface SiteSettings {
   latitude: string | null;
   longitude: string | null;
   workingHours: string | null;
-  instagram: string | null;
-  facebook: string | null;
-  youtube: string | null;
-  heroVideoUrl: string | null;
+  /** Sıralı; vitrinde alt bilgi ve iletişim sayfasında gösterilir */
+  socialLinks: SocialLink[];
+}
+
+export interface SocialLink {
+  /** SocialPlatform enum değeri; adları lookups.socialPlatform'da */
+  platform: number;
+  url: string;
+}
+
+// --- Site İçeriği (vitrin yazıları; yalnız Yönetici)
+
+/** SiteServiceType enum'u (sunucuyla aynı); sıra vitrindeki sıradır */
+export const SiteServiceType = {
+  BuyVehicle: 1,
+  Consignment: 2,
+  SellVehicle: 3,
+} as const;
+export type SiteServiceTypeValue = (typeof SiteServiceType)[keyof typeof SiteServiceType];
+
+export interface ServiceContent {
+  type: SiteServiceTypeValue;
+  /** Salt okunur: hizmetin adı (enum Display) */
+  title?: string;
+  /** Salt okunur: vitrindeki adresi, /hizmetler/{slug} */
+  path?: string;
+  summary: string;
+  body: string;
+}
+
+export interface StatItem {
+  value: string;
+  label: string;
+}
+
+export interface SiteContent {
+  services: ServiceContent[];
+  corporateIntro: string;
+  corporateAbout: string;
+  corporateVision: string;
+  corporateMission: string;
+  /** "Sayılarla Biz" rakamları, sıralı */
+  stats: StatItem[];
+  /** Salt okunur: ana sayfa videosu /content/hero-video uçlarıyla değişir */
+  heroVideo?: HeroVideo;
+}
+
+export interface HeroVideo {
+  /** Masaüstü videosu */
+  videoHdUrl: string;
+  /** Telefon videosu; yüklenen videoda masaüstüyle aynı dosya */
+  videoSdUrl: string;
+  /** Afiş (videodan önce görünen ilk kare), 1920 px */
+  posterUrl: string;
+  posterSmallUrl: string;
+  /** false: varsayılan drone videosu */
+  isCustom: boolean;
 }
 
 export interface WatermarkJobStatus {

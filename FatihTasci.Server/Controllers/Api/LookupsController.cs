@@ -28,7 +28,9 @@ public class LookupsController : BaseApiController
             ["featureCategory"] = EnumHelper.GetOptions<FeatureCategory>(),
             ["leadType"] = EnumHelper.GetOptions<LeadType>(),
             ["leadStatus"] = EnumHelper.GetOptions<LeadStatus>(),
-            ["userRole"] = EnumHelper.GetOptions<UserRole>()
+            ["sellDamage"] = EnumHelper.GetOptions<SellDamageState>(),
+            ["userRole"] = EnumHelper.GetOptions<UserRole>(),
+            ["socialPlatform"] = EnumHelper.GetOptions<SocialPlatform>()
         };
 
         return Ok(new ServiceResultModel<Dictionary<string, List<EnumOption>>> { Data = lookups, Message = "İşlem başarılı." });

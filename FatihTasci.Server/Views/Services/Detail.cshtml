@@ -1,0 +1,90 @@
+@model ServicePageModel
+@inject FatihTasci.Core.Service.Domains.Abstracts.ISiteSettingService SettingService
+@{
+    var settings = await SettingService.GetAsync();
+    var service = Model.Service;
+    var baseUrl = Urls.Base(Context.Request);
+    // WhatsApp'ta hazır mesaj: hem bu sayfadaki buton hem telefondaki alt çubuk kullanır.
+    var message = service.Type switch
+    {
+        SiteServiceType.BuyVehicle => "Merhaba, araç almak istiyorum.",
+        SiteServiceType.Consignment => "Merhaba, aracımı konsinye olarak satmak istiyorum.",
+        SiteServiceType.SellVehicle => "Merhaba, aracımı satmak istiyorum.",
+        _ => "Merhaba, bilgi almak istiyorum."
+    };
+    var whatsApp = SiteFormat.WhatsAppLink(settings.WhatsApp, message);
+    var tel = SiteFormat.TelLink(settings.Phone);
+    ViewData["Title"] = service.Title;
+    ViewData["Description"] = service.Summary;
+    ViewData["Canonical"] = service.Path;
+    ViewData["WhatsAppMessage"] = message;
+}
+@section Head {
+    @StructuredData.Script(StructuredData.Breadcrumb(baseUrl, ("Ana Sayfa", "/"), ("Hizmetler", "/hizmetler"), (service.Title, service.Path)))
+}
+<section class="section">
+    <div class="container">
+        <nav class="breadcrumb" aria-label="Konum">
+            <a href="/">Ana Sayfa</a> / <a href="/hizmetler">Hizmetler</a> / @service.Title
+        </nav>
+
+        <div class="service-layout">
+            <div class="service-main">
+                <p class="eyebrow">Hizmetler · @(((int)service.Type).ToString("00"))</p>
+                <h1 class="display">@service.Title</h1>
+                @if (!string.IsNullOrWhiteSpace(service.Summary))
+                {
+                    <p class="lead">@service.Summary</p>
+                }
+                <div class="prose service-body">@SiteFormat.Paragraphs(service.Body)</div>
+                @if (Model.SellForm != null)
+                {
+                    ViewData["SellAction"] = service.Path;
+                    ViewData["SellBrands"] = Model.SellBrands;
+                    <partial name="_SellForm" model="Model.SellForm" />
+                }
+            </div>
+
+            <aside class="panel service-contact" aria-labelledby="service-contact-title">
+                <h2 id="service-contact-title" class="panel-title">Hemen görüşelim</h2>
+                <p class="muted">Sorularınızı yanıtlayalım, size en uygun yolu birlikte belirleyelim.</p>
+                <div class="contact-actions">
+                    @if (whatsApp != null)
+                    {
+                        <a class="btn btn-primary" href="@whatsApp" target="_blank" rel="noopener">WhatsApp'tan yazın</a>
+                    }
+                    @if (tel != null)
+                    {
+                        <a class="btn btn-outline" href="@tel">Ara: @settings.Phone</a>
+                    }
+                    @if (service.Type == SiteServiceType.BuyVehicle)
+                    {
+                        <a class="btn btn-outline" href="/ilanlar">Tüm ilanları incele</a>
+                    }
+                    @if (Model.SellForm != null)
+                    {
+                        <a class="btn btn-outline" href="#teklif">Fotoğraflı teklif formu</a>
+                    }
+                    else
+                    {
+                        <a class="btn btn-outline" href="/iletisim">İletişim formu</a>
+                    }
+                </div>
+                @if (!string.IsNullOrWhiteSpace(settings.WorkingHours))
+                {
+                    <p class="muted service-hours">@settings.WorkingHours</p>
+                }
+            </aside>
+        </div>
+    </div>
+</section>
+
+@if (Model.Others.Count > 0)
+{
+    <section class="section">
+        <div class="container">
+            <h2 class="section-title">Diğer hizmetler</h2>
+            <partial name="_ServiceCards" model="Model.Others" />
+        </div>
+    </section>
+}

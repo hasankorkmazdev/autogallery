@@ -22,6 +22,14 @@
       "runtimeArgs": ["run", "--project", "FatihTasci.Server", "-c", "DebugVerify", "--urls", "http://localhost:5081"],
       "port": 5081,
       "autoPort": false
+    },
+    {
+      "name": "panel-verify",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-NoProfile", "-Command", "Set-Location FatihTasci.Admin; $env:VITE_SERVER_URL='http://localhost:5081'; npx vite --port 5174 --strictPort"],
+      "port": 5174,
+      "autoPort": false,
+      "url": "http://localhost:5174"
     }
   ]
 }

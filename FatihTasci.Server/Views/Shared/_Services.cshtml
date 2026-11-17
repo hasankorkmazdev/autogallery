@@ -1,0 +1,17 @@
+@model List<ServiceContentModel>
+@* Ana sayfadaki Hizmetler bölümü *@
+@if (Model.Count > 0)
+{
+    <section class="section" aria-labelledby="services-title">
+        <div class="container">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Hizmetler</p>
+                    <h2 id="services-title" class="section-title">Size nasıl yardımcı olabiliriz?</h2>
+                </div>
+                <a href="/hizmetler">Tüm hizmetler</a>
+            </div>
+            <partial name="_ServiceCards" model="Model" />
+        </div>
+    </section>
+}

@@ -28,6 +28,12 @@
     <None Remove="Storage\**" />
     <Content Remove="logs\**" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Paylaşım görselinin yazı tipleri (ShareImageService, OFL); yayın klasörüne kopyalanır, sitede sunulmaz -->
+    <None Update="Assets\**" CopyToPublishDirectory="PreserveNewest" />
+    <!-- Örnek teslimat fotoğrafları yalnız geliştirme seed'i içindir, yayına çıkmaz -->
+    <None Update="Assets\Seed\**" CopyToPublishDirectory="Never" />
+  </ItemGroup>
 
   <!--
     Debug derlemeden önce (VS F5, dotnet run / build / ef) 5080'i tutan ya da bin\Debug'ı kilitleyen eski sunucu kapatılır,

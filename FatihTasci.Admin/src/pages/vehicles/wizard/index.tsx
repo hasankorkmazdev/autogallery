@@ -136,14 +136,14 @@ export default function VehicleWizardPage() {
   const title = vehicle ? vehicle.title : "Yeni araç";
   const description = vehicle
     ? `İlan No ${vehicle.listingNo} · ${vehicle.brandName} ${vehicle.seriesName} ${vehicle.modelName}`
-    : "Önce marka, seri ve modeli seçin; taslak otomatik oluşturulur.";
+    : "Önce marka, model ve paketi seçin; taslak otomatik oluşturulur.";
 
   return (
     <PageLayout>
       <PageHeader
         title={title}
         description={description}
-        icon={<Car className="w-8 h-8" />}
+        icon={<Car />}
         actions={vehicle && <WizardHeaderActions vehicle={vehicle} onCopied={(copy) => navigate(`/vehicles/${copy.id}?step=2`)} />}
       />
       <PageContent className="overflow-y-auto">{renderContent()}</PageContent>

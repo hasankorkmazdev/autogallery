@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PageHeader, PageLayout } from "@/components/layout/page-layout";
+import { PageContent, PageHeader, PageLayout } from "@/components/layout/page-layout";
 import { useQuery } from "@/hooks/use-query";
 import { usersService } from "@/api/services/users.service";
 import type { UserListItem } from "@/api/types";
@@ -22,7 +22,7 @@ export default function UsersPage() {
       <PageHeader
         title="Kullanıcılar"
         description="Panele giriş yapabilen kişiler. Kullanıcı silinmez, pasife alınır; en az bir aktif yönetici kalır."
-        icon={<Users className="w-8 h-8" />}
+        icon={<Users />}
         actions={
           <Button onClick={() => setDialog({ user: null })}>
             <Plus className="w-4 h-4 mr-2" />
@@ -30,12 +30,14 @@ export default function UsersPage() {
           </Button>
         }
       />
-      <UserTable
-        items={users}
-        currentUserId={currentUserId}
-        onEdit={(user) => setDialog({ user })}
-        onResetPassword={setPasswordUser}
-      />
+      <PageContent>
+        <UserTable
+          items={users}
+          currentUserId={currentUserId}
+          onEdit={(user) => setDialog({ user })}
+          onResetPassword={setPasswordUser}
+        />
+      </PageContent>
       <UserDialog
         state={dialog}
         currentUserId={currentUserId}

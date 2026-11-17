@@ -6,7 +6,7 @@ import {
   useReactTable,
   type ColumnDef,
 } from "@tanstack/react-table";
-import { ImageOff, Star } from "lucide-react";
+import { ImageOff, Star, Tag } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -50,19 +50,44 @@ function PriceCell({ vehicle }: { vehicle: VehicleListItem }) {
   );
 }
 
+// Dar ekranda gizlenen sütunların (yıl, km, fiyat, durum) özeti başlığın altında görünür.
 function TitleCell({ vehicle }: { vehicle: VehicleListItem }) {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-0.5">
       <Link to={`/vehicles/${vehicle.id}`} className="font-medium hover:underline">
         {vehicle.title}
       </Link>
-      <span className="text-xs text-muted-foreground flex items-center gap-1">
+      <span className="text-xs text-muted-foreground flex flex-wrap items-center gap-1">
         İlan No {vehicle.listingNo} · {vehicle.photoCount} fotoğraf
         {vehicle.isFeatured && <Star className="size-3" aria-label="Vitrinde" />}
+        {vehicle.isOpportunity && <Tag className="size-3" aria-label="Fırsat aracı" />}
       </span>
+      <span className="text-xs text-muted-foreground xl:hidden">
+        {vehicle.year ?? "-"} · {formatKm(vehicle.kilometer)}
+      </span>
+      <div className="flex flex-wrap items-center gap-2 pt-1 lg:hidden">
+        <span className="text-sm">
+          <PriceCell vehicle={vehicle} />
+        </span>
+        <span className="sm:hidden">
+          <VehicleStatusBadge status={vehicle.status} />
+        </span>
+      </div>
     </div>
   );
 }
+
+// Sütun id'sine göre hizalama ve hangi genişlikte gizleneceği (başlık ve hücrede aynı).
+// Eşikler md'den itibaren açık kenar çubuğunun (16rem) kapladığı yeri hesaba katar.
+const COLUMN_CLASSES: Record<string, string> = {
+  cover: "max-sm:hidden",
+  title: "text-left",
+  year: "max-xl:hidden whitespace-nowrap",
+  kilometer: "max-xl:hidden whitespace-nowrap",
+  price: "max-lg:hidden whitespace-nowrap",
+  status: "max-sm:hidden",
+  updated: "max-2xl:hidden",
+};
 
 export function VehicleTable({ items, loading, onStatusChange, onCopy }: VehicleTableProps) {
   const columns = useMemo<ColumnDef<VehicleListItem>[]>(
@@ -110,7 +135,7 @@ export function VehicleTable({ items, loading, onStatusChange, onCopy }: Vehicle
     return table.getRowModel().rows.map((row) => (
       <TableRow key={row.id}>
         {row.getVisibleCells().map((cell) => (
-          <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+          <TableCell key={cell.id} className={COLUMN_CLASSES[cell.column.id]}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
         ))}
       </TableRow>
     ));
@@ -123,7 +148,7 @@ export function VehicleTable({ items, loading, onStatusChange, onCopy }: Vehicle
           {table.getHeaderGroups().map((group) => (
             <TableRow key={group.id}>
               {group.headers.map((header) => (
-                <TableHead key={header.id}>
+                <TableHead key={header.id} className={COLUMN_CLASSES[header.column.id]}>
                   {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                 </TableHead>
               ))}

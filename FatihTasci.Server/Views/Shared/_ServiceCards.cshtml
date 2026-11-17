@@ -1,0 +1,19 @@
+@model List<ServiceContentModel>
+@*
+    Hizmet kartları (ana sayfa, /hizmetler, hizmet sayfasının altı). Numara hizmetin sabit sırasıdır (01-03), her sayfada aynı.
+    Başlık h3'tür; kullanan sayfa üstte bir h2 verir. Yazılar panelde Site İçeriği'nden gelir.
+*@
+<div class="service-grid">
+    @foreach (var service in Model)
+    {
+        <a class="service-card" href="@service.Path">
+            <span class="service-num" aria-hidden="true">@(((int)service.Type).ToString("00"))</span>
+            <h3 class="service-title">@service.Title</h3>
+            @if (!string.IsNullOrWhiteSpace(service.Summary))
+            {
+                <p class="service-summary">@service.Summary</p>
+            }
+            <span class="service-more">Detaylı bilgi <span aria-hidden="true">→</span></span>
+        </a>
+    }
+</div>

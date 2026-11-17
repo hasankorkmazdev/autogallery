@@ -3,6 +3,8 @@ using FatihTasci.Core.Helpers;
 using FatihTasci.Core.Models.Domain;
 using FatihTasci.Core.Models.Domain.Account;
 using FatihTasci.Core.Models.Domain.Catalog;
+using FatihTasci.Core.Models.Domain.Content;
+using FatihTasci.Core.Models.Domain.Delivery;
 using FatihTasci.Core.Models.Domain.Lead;
 using FatihTasci.Core.Models.Domain.Public;
 using FatihTasci.Core.Models.Domain.Setting;
@@ -53,6 +55,7 @@ public interface IFeatureService : IDomainService
     Task<ServiceResultModel<List<FeatureGroupModel>>> GetGroupedAsync(bool includeInactive);
     Task<ServiceResultModel<FeatureModel>> CreateAsync(SaveFeatureRequestModel request);
     Task<ServiceResultModel<FeatureModel>> UpdateAsync(int id, SaveFeatureRequestModel request);
+    Task<ServiceResultModel<List<FeatureGroupModel>>> ReorderAsync(FeatureOrderRequestModel request);
 }
 
 public interface IVehicleService : IDomainService
@@ -106,9 +109,47 @@ public interface IShowroomService : IDomainService
     Task<ServiceResultModel<List<ShowroomSceneModel>>> DeleteImageAsync(int id);
 }
 
+public interface IDeliveryService : IDomainService
+{
+    /// <summary>
+    /// Panel: tüm teslimatlar, teslim tarihine göre en yeni önce
+    /// </summary>
+    Task<ServiceResultModel<List<DeliveryModel>>> GetAllAsync();
+
+    /// <summary>
+    /// Vitrin (ana sayfa): yayındaki en yeni teslimatlar
+    /// </summary>
+    Task<List<DeliveryModel>> GetLatestPublicAsync(int count);
+
+    /// <summary>
+    /// Vitrin (/teslimatlar): yayındaki teslimatlar, sayfalı
+    /// </summary>
+    Task<DeliveriesPageModel> GetPublicPageAsync(int page);
+
+    /// <summary>
+    /// Site haritası: yayındaki teslimatların son değişikliği; yayında teslimat yoksa null
+    /// </summary>
+    Task<DateTime?> GetLastPublicChangeAsync();
+
+    Task<ServiceResultModel<List<DeliveryModel>>> CreateAsync(SaveDeliveryRequestModel request, IFormFile photo);
+    Task<ServiceResultModel<List<DeliveryModel>>> UpdateAsync(int id, SaveDeliveryRequestModel request, IFormFile photo);
+    Task<ServiceResultModel<List<DeliveryModel>>> DeleteAsync(int id);
+}
+
 public interface ILeadService : IDomainService
 {
     Task<ServiceResultModel> CreateAsync(CreateLeadRequestModel request, string ipAddress);
+
+    /// <summary>
+    /// "Aracımı Satmak İstiyorum" teklif formu: talep ve fotoğrafları (özel klasöre, küçültülmüş WebP).
+    /// </summary>
+    Task<ServiceResultModel> CreateSellAsync(CreateSellLeadRequestModel request, string ipAddress);
+
+    /// <summary>
+    /// Talep fotoğrafının diskteki tam yolu (panel yetkili uçtan okur).
+    /// </summary>
+    Task<ServiceResultModel<string>> GetMediaFileAsync(Guid leadId, Guid mediaId);
+
     Task<ServiceResultModel<IPagedList<LeadModel>>> GetListAsync(LeadListRequestModel request);
     Task<ServiceResultModel<LeadModel>> UpdateAsync(Guid id, UpdateLeadRequestModel request);
     Task<ServiceResultModel<int>> GetNewCountAsync();
@@ -120,6 +161,17 @@ public interface ISiteSettingService : IDomainService
     Task<ServiceResultModel<SiteSettingsModel>> UpdateAsync(SiteSettingsModel request);
     Task<ServiceResultModel<SiteSettingsModel>> UploadLogoAsync(IFormFile file);
     Task<ServiceResultModel<SiteSettingsModel>> DeleteLogoAsync();
+}
+
+/// <summary>
+/// Vitrin yazıları (Hizmetler, Kurumsal, Sayılarla Biz). Vitrin her istekte okur, sonuç bellekte tutulur.
+/// </summary>
+public interface ISiteContentService : IDomainService
+{
+    Task<SiteContentModel> GetAsync();
+    Task<ServiceResultModel<SiteContentModel>> UpdateAsync(SiteContentModel request);
+    Task<ServiceResultModel<SiteContentModel>> UploadHeroVideoAsync(IFormFile video, IFormFile poster);
+    Task<ServiceResultModel<SiteContentModel>> DeleteHeroVideoAsync();
 }
 
 /// <summary>
@@ -143,9 +195,35 @@ public interface IPublicVehicleService : IDomainService
 {
     Task<HomePageModel> GetHomeAsync();
     Task<CatalogPathResult> ResolveCatalogPathAsync(string brandSlug, string seriesSlug);
-    Task<StockPageModel> GetStockAsync(StockFilterModel filter, CatalogPathResult path);
+    Task<ListingsPageModel> GetListingsAsync(ListingFilterModel filter, CatalogPathResult path);
     Task<PublicVehicleDetailModel> GetVehicleAsync(int listingNo);
     Task<Dictionary<string, List<EnumOption>>> GetFilterOptionsAsync();
+
+    /// <summary>
+    /// Paylaşım görseli bilgileri (görüntülenme sayısı artmaz). Yayında, rezerve ya da satılmış değilse null.
+    /// </summary>
+    Task<VehicleShareModel> GetShareAsync(int listingNo);
+
+    /// <summary>
+    /// sitemap.xml: yayındaki araçlar, araç olan marka / seri sayfaları
+    /// </summary>
+    Task<List<SitemapEntryModel>> GetSitemapEntriesAsync();
+}
+
+/// <summary>
+/// 1200×630 paylaşım görseli (og:image). Singleton; üretilen dosyalar private/share altında önbelleğe alınır.
+/// </summary>
+public interface IShareImageService
+{
+    /// <summary>
+    /// Kartın içeriğinden hesaplanan kısa sürüm. og:image adresine ?v= olarak eklenir; içerik değişince adres de değişir.
+    /// </summary>
+    string ComputeVersion(ShareCardModel card);
+
+    /// <summary>
+    /// Görseli üretir (önbellekte yoksa) ve dosyanın tam yolunu döner.
+    /// </summary>
+    Task<string> GetOrCreateAsync(ShareCardModel card);
 }
 
 public class CatalogPathResult

@@ -9,12 +9,17 @@ namespace FatihTasci.Server.Controllers.Site;
 public class HomeController : Controller
 {
     private readonly IPublicVehicleService _publicVehicleService;
-    private readonly IShowroomService _showroomService;
+    // Ana sayfadaki teslimat slaytında dönen teslimat sayısı
+    private const int HomeDeliveryCount = 8;
 
-    public HomeController(IPublicVehicleService publicVehicleService, IShowroomService showroomService)
+    private readonly IShowroomService _showroomService;
+    private readonly IDeliveryService _deliveryService;
+
+    public HomeController(IPublicVehicleService publicVehicleService, IShowroomService showroomService, IDeliveryService deliveryService)
     {
         _publicVehicleService = publicVehicleService;
         _showroomService = showroomService;
+        _deliveryService = deliveryService;
     }
 
     [HttpGet("")]
@@ -22,6 +27,7 @@ public class HomeController : Controller
     {
         var model = await _publicVehicleService.GetHomeAsync();
         model.Scenes = await _showroomService.GetPublicAsync();
+        model.Deliveries = await _deliveryService.GetLatestPublicAsync(HomeDeliveryCount);
         return View(model);
     }
 

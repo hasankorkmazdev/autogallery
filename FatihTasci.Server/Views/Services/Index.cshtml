@@ -1,0 +1,29 @@
+@model List<ServiceContentModel>
+@inject FatihTasci.Core.Service.Domains.Abstracts.ISiteSettingService SettingService
+@{
+    var settings = await SettingService.GetAsync();
+    var baseUrl = Urls.Base(Context.Request);
+    ViewData["Title"] = "Hizmetler";
+    ViewData["Description"] = $"{SiteFormat.GalleryName(settings)} hizmetleri: " + string.Join(", ", Model.Select(x => x.Title)) + ".";
+    ViewData["Canonical"] = "/hizmetler";
+}
+@section Head {
+    @StructuredData.Script(StructuredData.Breadcrumb(baseUrl, ("Ana Sayfa", "/"), ("Hizmetler", "/hizmetler")))
+}
+<section class="section page-head">
+    <div class="container">
+        <nav class="breadcrumb" aria-label="Konum">
+            <a href="/">Ana Sayfa</a> / Hizmetler
+        </nav>
+        <p class="eyebrow">Hizmetler</p>
+        <h1 class="display">Size nasıl yardımcı olabiliriz?</h1>
+        <p class="lead muted">Araç almak, aracınızı satmak ya da galerimizde sergileyerek satışa çıkarmak için doğru yerdesiniz.</p>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <h2 class="sr-only">Hizmetlerimiz</h2>
+        <partial name="_ServiceCards" model="Model" />
+    </div>
+</section>

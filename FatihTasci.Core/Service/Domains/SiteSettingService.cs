@@ -1,4 +1,5 @@
 using FatihTasci.Core.Entity.Common;
+using FatihTasci.Core.Helpers;
 using FatihTasci.Core.Models.Domain;
 using FatihTasci.Core.Models.Domain.Setting;
 using FatihTasci.Core.Providers;
@@ -8,15 +9,14 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
 using System.Reflection;
+using System.Text.Json;
 
 namespace FatihTasci.Core.Service.Domains;
 
 /// <summary>
 /// SiteSettingsModel'in her yazılabilir özelliği SiteSettings tablosunda aynı adlı bir anahtardır
-/// (bool değerler "true" / "false" olarak saklanır). LogoPath formla değil logo uçlarıyla değişir.
+/// (bool değerler "true" / "false", listeler JSON olarak saklanır). LogoPath formla değil logo uçlarıyla değişir.
 /// Vitrin her istekte okuduğu için sonuç bellekte tutulur, güncellemede temizlenir.
 /// </summary>
 public class SiteSettingService : DomainService, ISiteSettingService
@@ -59,6 +59,10 @@ public class SiteSettingService : DomainService, ISiteSettingService
                 if (bool.TryParse(value, out var flag))
                     property.SetValue(model, flag);
             }
+            else if (property.PropertyType == typeof(List<SocialLinkModel>))
+            {
+                property.SetValue(model, ReadSocialLinks(value));
+            }
             else
             {
                 property.SetValue(model, value);
@@ -96,32 +100,19 @@ public class SiteSettingService : DomainService, ISiteSettingService
         if (!AllowedLogoExtensions.Contains(Path.GetExtension(file.FileName).ToLowerInvariant()))
             return Result<SiteSettingsModel>(null, "Logo PNG, WebP ya da JPG olmalıdır. Filigran için saydam zeminli PNG önerilir.", 400);
 
-        Image image;
-        try
+        await using var input = file.OpenReadStream();
+        using var image = ImageTools.Decode(input, MaxLogoSize, MaxLogoSize);
+        if (image == null)
         {
-            await using var input = file.OpenReadStream();
-            image = await Image.LoadAsync(input);
-        }
-        catch (Exception ex) when (ex is UnknownImageFormatException or InvalidImageContentException or NotSupportedException)
-        {
-            _logger.LogWarning(ex, "Logo okunamadı: {FileName}", file.FileName);
+            _logger.LogWarning("Logo okunamadı: {FileName}", file.FileName);
             return Result<SiteSettingsModel>(null, "Dosya okunamadı, geçerli bir görsel değil.", 400);
         }
 
         // Saydamlık korunsun diye PNG olarak saklanır; adı her yüklemede değişir (medya uzun süre önbelleğe alınıyor).
         var path = $"site/logo-{Guid.NewGuid():N}.png";
-        using (image)
+        using (var resized = ImageTools.Fit(image, MaxLogoSize, MaxLogoSize))
+        await using (var output = ImageTools.ToPng(resized))
         {
-            image.Mutate(x => x.AutoOrient());
-            image.Metadata.ExifProfile = null;
-            image.Metadata.XmpProfile = null;
-            image.Metadata.IptcProfile = null;
-            if (image.Width > MaxLogoSize || image.Height > MaxLogoSize)
-                image.Mutate(x => x.Resize(new ResizeOptions { Size = new Size(MaxLogoSize, MaxLogoSize), Mode = ResizeMode.Max }));
-
-            await using var output = new MemoryStream();
-            await image.SaveAsPngAsync(output);
-            output.Position = 0;
             await _storage.SavePublicAsync(path, output);
         }
 
@@ -165,8 +156,33 @@ public class SiteSettingService : DomainService, ISiteSettingService
         if (value is bool flag)
             return flag ? "true" : "false";
 
+        if (value is List<SocialLinkModel> links)
+        {
+            var cleaned = links
+                .Where(x => !string.IsNullOrWhiteSpace(x.Url))
+                .Select(x => new SocialLinkModel { Platform = x.Platform, Url = x.Url.Trim() })
+                .ToList();
+            return cleaned.Count == 0 ? null : JsonSerializer.Serialize(cleaned);
+        }
+
         var text = (value as string)?.Trim();
         return string.IsNullOrEmpty(text) ? null : text;
+    }
+
+    private List<SocialLinkModel> ReadSocialLinks(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return new List<SocialLinkModel>();
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<SocialLinkModel>>(value) ?? new List<SocialLinkModel>();
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Sosyal medya bağlantıları okunamadı.");
+            return new List<SocialLinkModel>();
+        }
     }
 
     private void TryDeletePublic(string path)

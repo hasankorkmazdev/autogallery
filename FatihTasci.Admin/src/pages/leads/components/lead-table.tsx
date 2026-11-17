@@ -27,6 +27,18 @@ interface LeadTableProps {
 
 export function LeadTable({ items, loading, onOpen }: LeadTableProps) {
   const lookups = useLookupStore((state) => state.lookups);
+  // Satış / takas talebinde ziyaretçinin aracı ve fotoğraf sayısı, diğerlerinde talebin geldiği ilan.
+  const vehicleText = (lead: Lead) => {
+    if (lead.sellBrand) {
+      const year = lead.sellYear ? ` (${lead.sellYear})` : "";
+      const photos = lead.media.length > 0 ? ` · ${lead.media.length} fotoğraf` : "";
+      return `${lead.sellBrand} ${lead.sellModel ?? ""}${year}${photos}`;
+    }
+    return lead.vehicleTitle ? `${lead.vehicleTitle} (${lead.vehicleListingNo})` : null;
+  };
+  const statusBadge = (lead: Lead) => (
+    <Badge variant={STATUS_VARIANTS[lead.status]}>{labelOf(lookups?.leadStatus, lead.status)}</Badge>
+  );
 
   const renderBody = () => {
     if (items.length === 0) {
@@ -40,18 +52,22 @@ export function LeadTable({ items, loading, onOpen }: LeadTableProps) {
     }
     return items.map((lead) => (
       <TableRow key={lead.id}>
-        <TableCell>
-          <div className="flex flex-col">
+        <TableCell className="text-left">
+          {/* Dar ekranda gizlenen sütunların (tür, tarih, araç, durum) özeti burada görünür. */}
+          <div className="flex flex-col gap-0.5">
             <span className="font-medium">{lead.fullName}</span>
             <span className="text-xs text-muted-foreground">{lead.phone}</span>
+            <span className="text-xs text-muted-foreground lg:hidden">
+              {labelOf(lookups?.leadType, lead.type)} · {formatDateTime(lead.createDate)}
+            </span>
+            {vehicleText(lead) && <span className="text-xs text-muted-foreground xl:hidden">{vehicleText(lead)}</span>}
+            <span className="pt-1 sm:hidden">{statusBadge(lead)}</span>
           </div>
         </TableCell>
-        <TableCell>{labelOf(lookups?.leadType, lead.type)}</TableCell>
-        <TableCell>{lead.vehicleTitle ? `${lead.vehicleTitle} (${lead.vehicleListingNo})` : "-"}</TableCell>
-        <TableCell>
-          <Badge variant={STATUS_VARIANTS[lead.status]}>{labelOf(lookups?.leadStatus, lead.status)}</Badge>
-        </TableCell>
-        <TableCell>
+        <TableCell className="max-lg:hidden">{labelOf(lookups?.leadType, lead.type)}</TableCell>
+        <TableCell className="max-xl:hidden">{vehicleText(lead) ?? "-"}</TableCell>
+        <TableCell className="max-sm:hidden">{statusBadge(lead)}</TableCell>
+        <TableCell className="max-lg:hidden">
           <span className="text-xs text-muted-foreground">{formatDateTime(lead.createDate)}</span>
         </TableCell>
         <TableCell className="text-right">
@@ -68,11 +84,11 @@ export function LeadTable({ items, loading, onOpen }: LeadTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Kişi</TableHead>
-            <TableHead>Tür</TableHead>
-            <TableHead>Araç</TableHead>
-            <TableHead>Durum</TableHead>
-            <TableHead>Tarih</TableHead>
+            <TableHead className="text-left">Kişi</TableHead>
+            <TableHead className="max-lg:hidden">Tür</TableHead>
+            <TableHead className="max-xl:hidden">Araç</TableHead>
+            <TableHead className="max-sm:hidden">Durum</TableHead>
+            <TableHead className="max-lg:hidden">Tarih</TableHead>
             <TableHead className="text-right">İşlem</TableHead>
           </TableRow>
         </TableHeader>

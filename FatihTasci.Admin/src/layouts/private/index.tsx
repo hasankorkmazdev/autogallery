@@ -11,6 +11,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { ModeToggle } from "@/components/mode-toggle";
+import { APP_NAME } from "@/lib/app";
 
 export function PrivateLayout() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -22,7 +23,7 @@ export function PrivateLayout() {
   const sessionValid = isAuthenticated && isSessionValid(expiresAt);
 
   useEffect(() => {
-    document.title = pageTitle ? `${pageTitle} | Yönetim Paneli` : "Yönetim Paneli";
+    document.title = pageTitle ? `${pageTitle} | ${APP_NAME}` : APP_NAME;
   }, [pageTitle]);
 
   useEffect(() => {
@@ -40,7 +41,8 @@ export function PrivateLayout() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
+      {/* min-w-0: geniş içerik (tablo, adım şeridi) ana alanı kenar çubuğunun yanında ekrandan taşırmasın */}
+      <SidebarInset className="min-w-0">
         <header className="flex h-16 shrink-0 items-center justify-between gap-2 px-4 border-b">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="-ml-1" />

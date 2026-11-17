@@ -15,6 +15,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuthStore } from "@/store/auth-store";
+import { authService } from "@/api/services/auth.service";
 
 function initials(name: string) {
   return name
@@ -43,6 +44,12 @@ export function NavUser({ user }: { user: { name: string; email: string } }) {
   const { isMobile } = useSidebar();
   const logout = useAuthStore((state) => state.logout);
 
+  // Çerez silinemese de (bağlantı hatası) panel oturumu kapatılır; çerezin süresi zaten sınırlı.
+  const handleLogout = async () => {
+    await authService.logout().catch(() => undefined);
+    logout();
+  };
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -64,7 +71,7 @@ export function NavUser({ user }: { user: { name: string; email: string } }) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => logout()}>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut />
               Çıkış yap
             </DropdownMenuItem>

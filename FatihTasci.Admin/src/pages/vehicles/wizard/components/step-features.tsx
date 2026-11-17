@@ -46,7 +46,7 @@ export function StepFeatures({ vehicle, onSaved, registerSave }: StepProps) {
     form.setValue("featureIds", next, { shouldDirty: true });
   };
 
-  // "Aynı modelin önceki ilanındaki donanımı getir" kısayolu
+  // "Aynı paketin önceki ilanındaki donanımı getir" kısayolu
   const loadFromPrevious = async () => {
     try {
       const result = await vehiclesService.getFeatureSuggestion(vehicle.id);
@@ -75,7 +75,7 @@ export function StepFeatures({ vehicle, onSaved, registerSave }: StepProps) {
         </Field>
         <Button type="button" variant="outline" onClick={loadFromPrevious}>
           <History className="w-4 h-4 mr-2" />
-          Aynı modelin önceki ilanından getir
+          Aynı paketin önceki ilanından getir
         </Button>
       </div>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">

@@ -1,0 +1,83 @@
+@model List<DeliveryModel>
+@*
+    Ana sayfa "Teslimatlar" bölümü: ortadaki teslimat büyük, yanlar küçük ve soluk; 4 saniyede bir sıradaki ortaya gelir
+    (etkin nokta dolarak süreyi gösterir). Yan karta tıklayınca ortaya gelir, ortadakine tıklayınca tam ekran açılır.
+    Etkileşim: site.js → [data-coverflow] (dönme) ve [data-deliveries] (tam ekran). Teslimatlar panelden yönetilir.
+*@
+@{
+    var count = Model.Count;
+    string Tag(DeliveryModel d) => string.Join(" · ", new[] { d.City, SiteFormat.MonthYear(d.DeliveredAt) }.Where(x => !string.IsNullOrWhiteSpace(x)));
+    string Alt(DeliveryModel d)
+    {
+        var who = string.Join(", ", new[] { d.CustomerName, d.City }.Where(x => !string.IsNullOrWhiteSpace(x)));
+        return who.Length == 0 ? $"{d.VehicleTitle} teslimatı" : $"{d.VehicleTitle} teslimatı, {who}";
+    }
+}
+@if (count > 0)
+{
+    <section class="section deliveries" data-deliveries aria-labelledby="deliveries-title">
+        <div class="container">
+            <div class="deliveries-head">
+                <p class="eyebrow">Teslimatlar</p>
+                <h2 id="deliveries-title" class="atmosphere-title">Bizi <em>tercih edenler.</em></h2>
+                <p class="deliveries-lead">Showroomumuzdan yeni sahiplerine uğurladığımız araçlardan bazıları.</p>
+            </div>
+
+            <div class="dcf" data-coverflow role="region" aria-roledescription="carousel" aria-label="Son teslimatlar">
+                <div class="dcf-stage">
+                    @for (var i = 0; i < count; i++)
+                    {
+                        var d = Model[i];
+                        var alt = Alt(d);
+                        var caption = string.Join(" · ", new[] { d.VehicleTitle, d.CustomerName, d.City, SiteFormat.Date(d.DeliveredAt) }.Where(x => !string.IsNullOrWhiteSpace(x)));
+                        <figure class="dcf-card @(i == 0 ? "is-active" : null)" data-cf-card data-delivery data-large="@d.LargeUrl" data-alt="@alt" data-caption="@caption"
+                                aria-roledescription="slide" aria-label="@(i + 1) / @count" aria-hidden="@(i == 0 ? "false" : "true")">
+                            <button type="button" class="dcf-media" data-delivery-open aria-label="@alt: fotoğrafı büyüt" tabindex="@(i == 0 ? "0" : "-1")">
+                                <img src="@d.MediumUrl" srcset="@d.MediumUrl 800w, @d.LargeUrl 1600w" sizes="(min-width: 960px) 480px, 86vw"
+                                     alt="@alt" loading="lazy" decoding="async" />
+                            </button>
+                            <span class="dcf-zoom" aria-hidden="true">⤢</span>
+                        </figure>
+                    }
+                </div>
+
+                <div class="dcf-captions">
+                    @for (var i = 0; i < count; i++)
+                    {
+                        var d = Model[i];
+                        <div class="dcf-caption @(i == 0 ? "is-active" : null)" data-cf-caption aria-hidden="@(i == 0 ? "false" : "true")">
+                            <span class="dcf-tag">@Tag(d)</span>
+                            <h3 class="dcf-title">@d.VehicleTitle</h3>
+                            @if (!string.IsNullOrWhiteSpace(d.CustomerName))
+                            {
+                                <p class="dcf-meta">@d.CustomerName</p>
+                            }
+                        </div>
+                    }
+                </div>
+
+                @if (count > 1)
+                {
+                    <div class="dcf-nav">
+                        <button type="button" class="icon-btn" data-cf-prev aria-label="Önceki teslimat">←</button>
+                        <div class="dcf-dots">
+                            @for (var i = 0; i < count; i++)
+                            {
+                                <button type="button" class="dcf-dot @(i == 0 ? "is-active" : null)" data-cf-to="@i" aria-label="@(i + 1). teslimat"
+                                        aria-current="@(i == 0 ? "true" : "false")"><span></span></button>
+                            }
+                        </div>
+                        <button type="button" class="icon-btn" data-cf-next aria-label="Sonraki teslimat">→</button>
+                        <button type="button" class="icon-btn dcf-toggle" data-cf-toggle aria-label="Dönmeyi durdur"><span aria-hidden="true"></span></button>
+                    </div>
+                }
+            </div>
+
+            <div class="deliveries-more">
+                <a class="btn btn-pill" href="/teslimatlar">Tüm teslimatlar <span aria-hidden="true">→</span></a>
+            </div>
+        </div>
+
+        <partial name="_DeliveryLightbox" model="count" />
+    </section>
+}

@@ -1,0 +1,28 @@
+@model DeliveryModel
+@*
+    Teslimat kartı (/teslimatlar). Fotoğraf kartı doldurur; sol üstte şehir · ay etiketi, altta ince altın çizgi, araç adı
+    ve müşteri. Tıklayınca tam ekranda fotoğrafın tamamı görünür (site.js → [data-deliveries]).
+*@
+@{
+    var tag = string.Join(" · ", new[] { Model.City, SiteFormat.MonthYear(Model.DeliveredAt) }.Where(x => !string.IsNullOrWhiteSpace(x)));
+    var caption = string.Join(" · ", new[] { Model.VehicleTitle, Model.CustomerName, Model.City, SiteFormat.Date(Model.DeliveredAt) }
+        .Where(x => !string.IsNullOrWhiteSpace(x)));
+    var who = string.Join(", ", new[] { Model.CustomerName, Model.City }.Where(x => !string.IsNullOrWhiteSpace(x)));
+    var alt = who.Length == 0 ? $"{Model.VehicleTitle} teslimatı" : $"{Model.VehicleTitle} teslimatı, {who}";
+}
+<figure class="delivery" data-delivery data-large="@Model.LargeUrl" data-alt="@alt" data-caption="@caption">
+    <button type="button" class="delivery-media" data-delivery-open aria-label="@alt: fotoğrafı büyüt">
+        <img src="@Model.MediumUrl" srcset="@Model.MediumUrl 800w, @Model.LargeUrl 1600w"
+             sizes="(min-width: 960px) 33vw, (min-width: 640px) 50vw, 100vw" alt="@alt" loading="lazy" decoding="async" />
+    </button>
+    <span class="delivery-shade" aria-hidden="true"></span>
+    <span class="delivery-tag" aria-hidden="true">@tag</span>
+    <span class="delivery-zoom" aria-hidden="true">⤢</span>
+    <figcaption class="delivery-caption">
+        <span class="delivery-title">@Model.VehicleTitle</span>
+        @if (!string.IsNullOrWhiteSpace(Model.CustomerName))
+        {
+            <span class="delivery-meta">@Model.CustomerName</span>
+        }
+    </figcaption>
+</figure>

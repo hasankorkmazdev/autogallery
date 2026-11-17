@@ -1,0 +1,78 @@
+@model DeliveriesPageModel
+@inject FatihTasci.Core.Service.Domains.Abstracts.ISiteSettingService SettingService
+@{
+    var settings = await SettingService.GetAsync();
+    var galleryName = SiteFormat.GalleryName(settings);
+    var baseUrl = Urls.Base(Context.Request);
+    ViewData["Title"] = Model.Page > 1 ? $"Teslimatlar (Sayfa {Model.Page})" : "Teslimatlar";
+    ViewData["Description"] = $"{galleryName}: yeni sahiplerine teslim ettiğimiz araçlar.";
+    // Sayfalı listede her sayfa kendini gösterir (1. sayfa yalın adres)
+    ViewData["Canonical"] = Model.Page > 1 ? $"/teslimatlar?page={Model.Page}" : "/teslimatlar";
+
+    string PageUrl(int page) => page > 1 ? $"/teslimatlar?page={page}" : "/teslimatlar";
+}
+@section Head {
+    @StructuredData.Script(StructuredData.Breadcrumb(baseUrl, ("Ana Sayfa", "/"), ("Teslimatlar", "/teslimatlar")))
+}
+<section class="section page-head">
+    <div class="container">
+        <nav class="breadcrumb" aria-label="Konum">
+            <a href="/">Ana Sayfa</a> / Teslimatlar
+        </nav>
+        <p class="eyebrow">Teslimatlar</p>
+        <h1 class="display">Bizi tercih edenler</h1>
+        <p class="lead">Showroomumuzdan yeni sahiplerine uğurladığımız araçlar.</p>
+    </div>
+</section>
+
+<section class="section" data-deliveries aria-label="Teslimatlar">
+    <div class="container">
+        @if (Model.Items.Count == 0)
+        {
+            <div class="empty">
+                <p>Teslimat fotoğrafları çok yakında burada.</p>
+                <a class="btn btn-primary" href="/ilanlar">Tüm ilanları incele</a>
+            </div>
+        }
+        else
+        {
+            <div class="delivery-grid">
+                @* Arşiv: eşit kartlar (öne çıkan büyük kart yalnız ana sayfada) *@
+                @foreach (var delivery in Model.Items)
+                {
+                    <partial name="_DeliveryCard" model="delivery" />
+                }
+            </div>
+
+            @if (Model.TotalPages > 1)
+            {
+                <nav class="pagination" aria-label="Sayfalar">
+                    @if (Model.Page > 1)
+                    {
+                        <a href="@PageUrl(Model.Page - 1)" rel="prev">Önceki</a>
+                    }
+                    <span>Sayfa @Model.Page / @Model.TotalPages</span>
+                    @if (Model.Page < Model.TotalPages)
+                    {
+                        <a href="@PageUrl(Model.Page + 1)" rel="next">Sonraki</a>
+                    }
+                </nav>
+            }
+        }
+    </div>
+
+    @if (Model.Items.Count > 0)
+    {
+        <partial name="_DeliveryLightbox" model="Model.Items.Count" />
+    }
+</section>
+
+<section class="section">
+    <div class="container corporate-cta">
+        <h2 class="section-title">Sıradaki teslimat sizin olsun</h2>
+        <div class="hero-actions">
+            <a class="btn btn-primary" href="/ilanlar">Tüm ilanları incele</a>
+            <a class="btn btn-outline" href="/iletisim">Ziyaret planla</a>
+        </div>
+    </div>
+</section>

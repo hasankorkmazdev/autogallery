@@ -2,9 +2,9 @@ namespace FatihTasci.Core.Models.Domain.Public;
 
 // Vitrin (Razor) sayfalarının modelleri. Değerler ekranda gösterilecek şekilde hazırlanır.
 
-public class StockPageModel
+public class ListingsPageModel
 {
-    public StockFilterModel Filter { get; set; }
+    public ListingFilterModel Filter { get; set; }
     public List<VehicleCardModel> Items { get; set; } = new();
     public int TotalCount { get; set; }
     public int Page { get; set; }

@@ -22,8 +22,8 @@ public class VehicleIdentityRequestModelValidator : AbstractValidator<VehicleIde
     public VehicleIdentityRequestModelValidator()
     {
         RuleFor(x => x.BrandId).GreaterThan(0).WithMessage("Marka seçin.");
-        RuleFor(x => x.SeriesId).GreaterThan(0).WithMessage("Seri seçin.");
-        RuleFor(x => x.CarModelId).GreaterThan(0).WithMessage("Model seçin.");
+        RuleFor(x => x.SeriesId).GreaterThan(0).WithMessage("Model seçin.");
+        RuleFor(x => x.CarModelId).GreaterThan(0).WithMessage("Paket seçin.");
         RuleFor(x => x.Title)
             .NotEmpty().WithMessage("İlan başlığı zorunludur.")
             .MaximumLength(150).WithMessage("İlan başlığı en fazla 150 karakter olabilir.");

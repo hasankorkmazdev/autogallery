@@ -93,6 +93,7 @@ public class VehicleService : DomainService, IVehicleService
                 x.ShowPrice,
                 x.Status,
                 x.IsFeatured,
+                x.IsOpportunity,
                 x.CreateDate,
                 x.LastUpdateDate,
                 CoverPath = x.Media.Where(m => m.IsCover).Select(m => m.SmallPath).FirstOrDefault(),
@@ -122,6 +123,7 @@ public class VehicleService : DomainService, IVehicleService
                 ShowPrice = x.ShowPrice,
                 Status = x.Status,
                 IsFeatured = x.IsFeatured,
+                IsOpportunity = x.IsOpportunity,
                 CoverUrl = _storage.ToUrl(x.CoverPath),
                 PhotoCount = x.PhotoCount,
                 PublicUrl = BuildPublicUrl(x.Slug, x.ListingNo),
@@ -149,7 +151,7 @@ public class VehicleService : DomainService, IVehicleService
     {
         var catalog = await LoadCatalogChainAsync(request);
         if (catalog == null)
-            return Result<VehicleDetailModel>(null, "Seçilen marka, seri ve model birbiriyle uyumlu değil.", 400);
+            return Result<VehicleDetailModel>(null, "Seçilen marka, model ve paket birbiriyle uyumlu değil.", 400);
 
         var vehicle = new VehicleEntity
         {
@@ -176,7 +178,7 @@ public class VehicleService : DomainService, IVehicleService
 
         var catalog = await LoadCatalogChainAsync(request);
         if (catalog == null)
-            return Result<VehicleDetailModel>(null, "Seçilen marka, seri ve model birbiriyle uyumlu değil.", 400);
+            return Result<VehicleDetailModel>(null, "Seçilen marka, model ve paket birbiriyle uyumlu değil.", 400);
 
         vehicle.BrandId = request.BrandId;
         vehicle.SeriesId = request.SeriesId;
@@ -305,7 +307,7 @@ public class VehicleService : DomainService, IVehicleService
             orderBy: q => q.OrderByDescending(x => x.CreateDate));
 
         if (sourceId == null)
-            return Result(new List<int>(), "Bu modelin donanımı girilmiş başka bir ilanı yok.", 404);
+            return Result(new List<int>(), "Bu paketin donanımı girilmiş başka bir ilanı yok.", 404);
 
         var featureIds = await _vehicleFeatureRepository.GetAllAsync(selector: x => x.FeatureId, predicate: x => x.VehicleId == sourceId);
         return Result(featureIds.ToList(), "Önceki ilanın donanımı getirildi.");
@@ -338,8 +340,11 @@ public class VehicleService : DomainService, IVehicleService
         vehicle.CampaignPrice = request.CampaignPrice;
         vehicle.ShowPrice = request.ShowPrice;
         vehicle.Description = SanitizeDescription(request.Description);
+        vehicle.ContactName = string.IsNullOrWhiteSpace(request.ContactName) ? null : request.ContactName.Trim();
+        vehicle.ContactPhone = string.IsNullOrWhiteSpace(request.ContactPhone) ? null : request.ContactPhone.Trim();
         vehicle.IsFeatured = request.IsFeatured;
         vehicle.FeaturedOrder = request.FeaturedOrder;
+        vehicle.IsOpportunity = request.IsOpportunity;
 
         return await SaveAndReturnAsync(id, "Fiyat ve açıklama kaydedildi.");
     }
@@ -378,7 +383,7 @@ public class VehicleService : DomainService, IVehicleService
 
     /// <summary>
     /// Benzer ilandan kopyala: katalog, teknik bilgiler (km ve renkler hariç), durum ve donanım kopyalanır.
-    /// Hasar, fotoğraf ve fiyat yeni araç için ayrıca girilir.
+    /// İlan yetkilisi de kopyalanır. Hasar, fotoğraf ve fiyat yeni araç için ayrıca girilir.
     /// </summary>
     public async Task<ServiceResultModel<VehicleDetailModel>> CopyAsync(Guid id)
     {
@@ -409,7 +414,9 @@ public class VehicleService : DomainService, IVehicleService
             Condition = source.Condition,
             PlateOrigin = source.PlateOrigin,
             AcceptsTrade = source.AcceptsTrade,
-            ShowPrice = source.ShowPrice
+            ShowPrice = source.ShowPrice,
+            ContactName = source.ContactName,
+            ContactPhone = source.ContactPhone
         };
         _vehicleRepository.Insert(copy);
         _vehicleFeatureRepository.Insert(source.Features.Select(x => new VehicleFeatureEntity { VehicleId = copy.Id, FeatureId = x.FeatureId }));
@@ -563,8 +570,11 @@ public class VehicleService : DomainService, IVehicleService
             CampaignPrice = x.CampaignPrice,
             ShowPrice = x.ShowPrice,
             Description = x.Description,
+            ContactName = x.ContactName,
+            ContactPhone = x.ContactPhone,
             IsFeatured = x.IsFeatured,
             FeaturedOrder = x.FeaturedOrder,
+            IsOpportunity = x.IsOpportunity,
             ViewCount = x.ViewCount,
             PublishedAt = x.PublishedAt,
             SoldAt = x.SoldAt

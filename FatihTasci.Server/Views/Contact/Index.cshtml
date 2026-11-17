@@ -4,9 +4,15 @@
     var settings = await SettingService.GetAsync();
     var tel = SiteFormat.TelLink(settings.Phone);
     var whatsApp = SiteFormat.WhatsAppLink(settings.WhatsApp, "Merhaba, bilgi almak istiyorum.");
-    var hasMap = !string.IsNullOrWhiteSpace(settings.Latitude) && !string.IsNullOrWhiteSpace(settings.Longitude);
+    var baseUrl = Urls.Base(Context.Request);
     ViewData["Title"] = "İletişim";
+    ViewData["Description"] = string.IsNullOrWhiteSpace(settings.Address)
+        ? $"{SiteFormat.GalleryName(settings)} iletişim bilgileri, telefon ve WhatsApp."
+        : $"{SiteFormat.GalleryName(settings)} adres, yol tarifi ve iletişim bilgileri: {settings.Address}";
     ViewData["Canonical"] = "/iletisim";
+}
+@section Head {
+    @StructuredData.Script(StructuredData.Dealer(settings, baseUrl, baseUrl + ShareCards.SiteImagePath))
 }
 <section class="section">
     <div class="container">
@@ -36,9 +42,10 @@
                         <a class="btn btn-outline" href="mailto:@settings.Email">@settings.Email</a>
                     }
                 </div>
-                @if (hasMap)
+                @if (settings.SocialLinks.Count > 0)
                 {
-                    <p><a href="https://www.google.com/maps?q=@settings.Latitude,@settings.Longitude" target="_blank" rel="noopener">Haritada göster</a></p>
+                    <h3 class="contact-social-title">Bizi takip edin</h3>
+                    <partial name="_SocialLinks" model="settings.SocialLinks" view-data='new ViewDataDictionary(ViewData) { ["SocialVariant"] = "list" }' />
                 }
             </div>
 
@@ -79,3 +86,6 @@
         </div>
     </div>
 </section>
+
+@{ ViewData["LocationTitle"] = "Konum ve yol tarifi"; }
+<partial name="_Location" model="settings" />

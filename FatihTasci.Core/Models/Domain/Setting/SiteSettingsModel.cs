@@ -42,13 +42,16 @@ public class SiteSettingsModel : IRequestModel
     public string Latitude { get; set; }
     public string Longitude { get; set; }
     public string WorkingHours { get; set; }
-    public string Instagram { get; set; }
-    public string Facebook { get; set; }
-    public string Youtube { get; set; }
-    public string HeroVideoUrl { get; set; }
+
+    /// <summary>
+    /// Sosyal medya ve ilan mağazası bağlantıları (sıralı). SiteSettings'te tek anahtarda JSON olarak saklanır.
+    /// </summary>
+    public List<SocialLinkModel> SocialLinks { get; set; } = new();
 }
 public class SiteSettingsModelValidator : AbstractValidator<SiteSettingsModel>
 {
+    public const int MaxSocialLinks = 12;
+
     public SiteSettingsModelValidator()
     {
         RuleFor(x => x.GalleryName)
@@ -73,13 +76,11 @@ public class SiteSettingsModelValidator : AbstractValidator<SiteSettingsModel>
             .When(x => !string.IsNullOrWhiteSpace(x.Longitude))
             .WithMessage("Boylam -180 ile 180 arasında, nokta ile yazılmalıdır.");
         RuleFor(x => x.WorkingHours).MaximumLength(200).WithMessage("Çalışma saatleri en fazla 200 karakter olabilir.");
-        RuleFor(x => x.Instagram).Must(BeHttpsUrl).When(x => !string.IsNullOrWhiteSpace(x.Instagram)).WithMessage("Geçerli bir https bağlantısı girin.");
-        RuleFor(x => x.Facebook).Must(BeHttpsUrl).When(x => !string.IsNullOrWhiteSpace(x.Facebook)).WithMessage("Geçerli bir https bağlantısı girin.");
-        RuleFor(x => x.Youtube).Must(BeHttpsUrl).When(x => !string.IsNullOrWhiteSpace(x.Youtube)).WithMessage("Geçerli bir https bağlantısı girin.");
-        RuleFor(x => x.HeroVideoUrl).Must(BeHttpsUrl).When(x => !string.IsNullOrWhiteSpace(x.HeroVideoUrl)).WithMessage("Geçerli bir https bağlantısı girin.");
-    }
+        RuleFor(x => x.SocialLinks)
+            .Must(x => x == null || x.Count <= MaxSocialLinks).WithMessage($"En fazla {MaxSocialLinks} bağlantı eklenebilir.");
+        RuleForEach(x => x.SocialLinks).SetValidator(new SocialLinkModelValidator());    }
 
-    private static bool BeHttpsUrl(string value)
+    public static bool BeHttpsUrl(string value)
     {
         return Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps;
     }

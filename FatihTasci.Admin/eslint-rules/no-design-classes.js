@@ -36,7 +36,7 @@ const WIDTH_OK = new Set([
 ]);
 const WIDTH = [/^w-/, /^min-w-/];
 
-const BREAKPOINT = /^(?:sm|md|lg|xl|2xl|max-sm|max-md|max-lg|max-xl):/;
+const BREAKPOINT = /^(?:sm|md|lg|xl|2xl|max-sm|max-md|max-lg|max-xl|max-2xl):/;
 
 const POSITIONING = [
   /^pointer-events-(?:none|auto)$/,

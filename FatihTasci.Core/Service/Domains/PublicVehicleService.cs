@@ -15,14 +15,14 @@ using System.Text.RegularExpressions;
 namespace FatihTasci.Core.Service.Domains;
 
 /// <summary>
-/// Vitrin sorguları. Stokta yayındaki ve rezerve araçlar görünür; satılmış araç sayfası
+/// Vitrin sorguları. İlanlarda yayındaki ve rezerve araçlar görünür; satılmış araç sayfası
 /// "Satıldı" rozetiyle açık kalır. Taslak ve arşiv hiçbir zaman görünmez.
 /// </summary>
 public class PublicVehicleService : DomainService, IPublicVehicleService
 {
     public const int PageSize = 12;
 
-    private static readonly VehicleStatus[] StockStatuses = { VehicleStatus.Published, VehicleStatus.Reserved };
+    private static readonly VehicleStatus[] ListedStatuses = { VehicleStatus.Published, VehicleStatus.Reserved };
     private static readonly VehicleStatus[] DetailStatuses = { VehicleStatus.Published, VehicleStatus.Reserved, VehicleStatus.Sold };
     private static readonly CultureInfo Turkish = CultureInfo.GetCultureInfo("tr-TR");
 
@@ -43,25 +43,50 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
         _storage = storage;
     }
 
+    /// <summary>
+    /// Ana sayfa mozaiğindeki araç sayısı
+    /// </summary>
+    public const int ShowcaseSize = 5;
+
+    /// <summary>
+    /// "Fırsat Araçları" şeridindeki en fazla araç sayısı
+    /// </summary>
+    public const int OpportunityLimit = 30;
+
     public async Task<HomePageModel> GetHomeAsync()
     {
-        var stock = _vehicleRepository.GetQuery().Where(x => StockStatuses.Contains(x.Status));
+        var listed = _vehicleRepository.GetQuery().Where(x => ListedStatuses.Contains(x.Status));
+
+        // Mozaik: öne çıkanlar vitrin sırasıyla, eksik kalırsa en yeniler
+        var showcaseIds = await listed.Where(x => x.IsFeatured)
+            .OrderBy(x => x.FeaturedOrder).ThenByDescending(x => x.PublishedAt)
+            .Select(x => x.Id).Take(ShowcaseSize).ToListAsync();
+        if (showcaseIds.Count < ShowcaseSize)
+        {
+            showcaseIds.AddRange(await listed.Where(x => !showcaseIds.Contains(x.Id))
+                .OrderByDescending(x => x.PublishedAt)
+                .Select(x => x.Id).Take(ShowcaseSize - showcaseIds.Count).ToListAsync());
+        }
+
+        var showcase = await ToCardsAsync(listed.Where(x => showcaseIds.Contains(x.Id)));
 
         return new HomePageModel
         {
-            Featured = await ToCardsAsync(stock.Where(x => x.IsFeatured).OrderBy(x => x.FeaturedOrder).ThenByDescending(x => x.PublishedAt).Take(6)),
-            Latest = await ToCardsAsync(stock.OrderByDescending(x => x.PublishedAt).Take(6)),
-            StockCount = await stock.CountAsync(),
-            Brands = await GetStockBrandsAsync(stock)
+            Showcase = showcaseIds.Select(id => showcase.First(c => c.Id == id)).ToList(),
+            Latest = await ToCardsAsync(listed.Where(x => !showcaseIds.Contains(x.Id)).OrderByDescending(x => x.PublishedAt).Take(6)),
+            Opportunities = await ToCardsAsync(listed.Where(x => x.IsOpportunity)
+                .OrderByDescending(x => x.PublishedAt).Take(OpportunityLimit)),
+            ListingCount = await listed.CountAsync(),
+            Brands = await GetListedBrandsAsync(listed)
         };
     }
 
     /// <summary>
-    /// Stokta aracı olan markalar, araç sayıları ve logolarıyla
+    /// İlanda aracı olan markalar, araç sayıları ve logolarıyla
     /// </summary>
-    private static Task<List<FilterOptionModel>> GetStockBrandsAsync(IQueryable<VehicleEntity> stock)
+    private static Task<List<FilterOptionModel>> GetListedBrandsAsync(IQueryable<VehicleEntity> listed)
     {
-        return stock
+        return listed
             .GroupBy(x => new { x.Brand.Slug, x.Brand.Name, x.Brand.LogoPath, x.Brand.SortOrder })
             .OrderBy(g => g.Key.SortOrder).ThenBy(g => g.Key.Name)
             .Select(g => new FilterOptionModel { Value = g.Key.Slug, Label = g.Key.Name, LogoUrl = g.Key.LogoPath, Count = g.Count() })
@@ -81,7 +106,7 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
             brand = redirect == null ? null : await _brandRepository.GetFirstOrDefaultAsync(predicate: x => x.Id == redirect.EntityId && x.IsActive);
             if (brand == null)
                 return result;
-            result.RedirectPath = $"/stok/{brand.Slug}";
+            result.RedirectPath = $"/ilanlar/{brand.Slug}";
         }
 
         result.BrandId = brand.Id;
@@ -98,11 +123,11 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
                 series = redirect == null ? null : await _seriesRepository.GetFirstOrDefaultAsync(predicate: x => x.Id == redirect.EntityId && x.IsActive);
                 if (series == null)
                     return result;
-                result.RedirectPath = $"/stok/{brand.Slug}/{series.Slug}";
+                result.RedirectPath = $"/ilanlar/{brand.Slug}/{series.Slug}";
             }
             else if (result.RedirectPath != null)
             {
-                result.RedirectPath = $"/stok/{brand.Slug}/{series.Slug}";
+                result.RedirectPath = $"/ilanlar/{brand.Slug}/{series.Slug}";
             }
 
             result.SeriesId = series.Id;
@@ -114,9 +139,9 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
         return result;
     }
 
-    public async Task<StockPageModel> GetStockAsync(StockFilterModel filter, CatalogPathResult path)
+    public async Task<ListingsPageModel> GetListingsAsync(ListingFilterModel filter, CatalogPathResult path)
     {
-        var baseQuery = _vehicleRepository.GetQuery().Where(x => StockStatuses.Contains(x.Status));
+        var baseQuery = _vehicleRepository.GetQuery().Where(x => ListedStatuses.Contains(x.Status));
         var query = baseQuery;
 
         if (path.BrandId.HasValue)
@@ -153,7 +178,7 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
         var totalPages = Math.Max(1, (int)Math.Ceiling(total / (double)PageSize));
         var page = Math.Clamp(filter.Page, 1, totalPages);
 
-        var model = new StockPageModel
+        var model = new ListingsPageModel
         {
             Filter = filter,
             TotalCount = total,
@@ -164,7 +189,7 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
             Items = await ToCardsAsync(query.Skip((page - 1) * PageSize).Take(PageSize))
         };
 
-        model.Brands = await GetStockBrandsAsync(baseQuery);
+        model.Brands = await GetListedBrandsAsync(baseQuery);
 
         if (path.BrandId.HasValue)
         {
@@ -220,6 +245,10 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
             TramerAmount = x.TramerAmount,
             ExpertiseReportUrl = _storage.ToUrl(x.ExpertiseReportPath),
             Description = x.Description,
+            ContactName = x.ContactName,
+            ContactPhone = x.ContactPhone,
+            PublishedAt = x.PublishedAt,
+            SoldAt = x.SoldAt,
             VideoUrl = x.VideoUrl,
             VideoEmbedUrl = ToYoutubeEmbed(x.VideoUrl),
             Summary = BuildSummary(x),
@@ -258,14 +287,93 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
                 }).ToList()
         };
 
+        model.Share = BuildShare(x, model.Images.FirstOrDefault()?.LargeUrl);
+        model.Year = x.Year;
+        model.Kilometer = x.Kilometer;
+        model.FuelName = EnumHelper.GetDisplayName(x.FuelType);
+        model.TransmissionName = EnumHelper.GetDisplayName(x.Transmission);
+        model.BodyTypeName = EnumHelper.GetDisplayName(x.BodyType);
+        model.EngineCc = x.EngineCc;
+        model.PowerHp = x.PowerHp;
+        model.Drivetrain = x.Drivetrain;
+        model.ExteriorColorName = x.ExteriorColor?.Name;
+        model.InteriorColor = x.InteriorColor;
+        model.Condition = x.Condition;
+
         var similarQuery = _vehicleRepository.GetQuery()
-            .Where(v => v.Id != x.Id && StockStatuses.Contains(v.Status) && (v.SeriesId == x.SeriesId || v.BodyType == x.BodyType))
+            .Where(v => v.Id != x.Id && ListedStatuses.Contains(v.Status) && (v.SeriesId == x.SeriesId || v.BodyType == x.BodyType))
             .OrderByDescending(v => v.SeriesId == x.SeriesId)
             .ThenByDescending(v => v.PublishedAt)
             .Take(4);
         model.Similar = await ToCardsAsync(similarQuery);
 
         return model;
+    }
+
+    public async Task<VehicleShareModel> GetShareAsync(int listingNo)
+    {
+        var x = await _vehicleRepository.GetQuery()
+            .Where(v => v.ListingNo == listingNo && DetailStatuses.Contains(v.Status))
+            .Select(v => new
+            {
+                Vehicle = v,
+                CoverPath = v.Media.OrderByDescending(m => m.IsCover).ThenBy(m => m.SortOrder).Select(m => m.LargePath).FirstOrDefault()
+            })
+            .FirstOrDefaultAsync();
+
+        return x == null ? null : BuildShare(x.Vehicle, _storage.ToUrl(x.CoverPath));
+    }
+
+    public async Task<List<SitemapEntryModel>> GetSitemapEntriesAsync()
+    {
+        var listed = _vehicleRepository.GetQuery().Where(x => ListedStatuses.Contains(x.Status));
+
+        var vehicles = await listed
+            .OrderByDescending(x => x.PublishedAt)
+            .Select(x => new
+            {
+                x.Slug,
+                x.ListingNo,
+                LastModified = x.LastUpdateDate ?? x.PublishedAt ?? x.CreateDate,
+                CoverPath = x.Media.Where(m => m.IsCover).Select(m => m.LargePath).FirstOrDefault()
+            })
+            .ToListAsync();
+
+        var series = await listed
+            .GroupBy(x => new { BrandSlug = x.Brand.Slug, SeriesSlug = x.Series.Slug })
+            .Select(g => new { g.Key.BrandSlug, g.Key.SeriesSlug, LastModified = g.Max(v => v.LastUpdateDate ?? v.PublishedAt ?? v.CreateDate) })
+            .ToListAsync();
+
+        var entries = series
+            .GroupBy(x => x.BrandSlug)
+            .OrderBy(g => g.Key)
+            .SelectMany(g => new[] { new SitemapEntryModel { Path = $"/ilanlar/{g.Key}", LastModified = g.Max(s => s.LastModified) } }
+                .Concat(g.OrderBy(s => s.SeriesSlug).Select(s => new SitemapEntryModel { Path = $"/ilanlar/{s.BrandSlug}/{s.SeriesSlug}", LastModified = s.LastModified })))
+            .ToList();
+
+        entries.AddRange(vehicles.Select(x => new SitemapEntryModel
+        {
+            Path = VehicleService.BuildPublicUrl(x.Slug, x.ListingNo),
+            LastModified = x.LastModified,
+            ImageUrl = _storage.ToUrl(x.CoverPath)
+        }));
+
+        return entries;
+    }
+
+    private static VehicleShareModel BuildShare(VehicleEntity x, string coverUrl)
+    {
+        return new VehicleShareModel
+        {
+            ListingNo = x.ListingNo,
+            Title = x.Title,
+            Summary = BuildSummary(x),
+            Price = x.Price,
+            CampaignPrice = x.CampaignPrice,
+            ShowPrice = x.ShowPrice,
+            Status = x.Status,
+            CoverUrl = coverUrl
+        };
     }
 
     public Task<Dictionary<string, List<EnumOption>>> GetFilterOptionsAsync()
@@ -286,7 +394,10 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
         {
             Title = r.Title,
             Url = VehicleService.BuildPublicUrl(r.Slug, r.ListingNo),
-            CoverUrl = _storage.ToUrl(r.CoverPath),
+            Id = r.Id,
+            CoverUrl = _storage.ToUrl(r.Cover?.MediumPath),
+            CoverSmallUrl = _storage.ToUrl(r.Cover?.SmallPath),
+            CoverLargeUrl = _storage.ToUrl(r.Cover?.LargePath),
             CoverAlt = r.Title,
             Year = r.Year,
             Kilometer = r.Kilometer,
@@ -314,7 +425,10 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
             CampaignPrice = x.CampaignPrice,
             ShowPrice = x.ShowPrice,
             Status = x.Status,
-            CoverPath = x.Media.Where(m => m.IsCover).Select(m => m.MediumPath).FirstOrDefault()
+            Id = x.Id,
+            Cover = x.Media.Where(m => m.IsCover)
+                .Select(m => new CoverRow { SmallPath = m.SmallPath, MediumPath = m.MediumPath, LargePath = m.LargePath })
+                .FirstOrDefault()
         };
     }
 
@@ -336,8 +450,8 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
         {
             Spec("İlan No", x.ListingNo.ToString()),
             Spec("Marka", x.Brand.Name),
-            Spec("Seri", x.Series.Name),
-            Spec("Model", x.CarModel.Name),
+            Spec("Model", x.Series.Name),
+            Spec("Paket", x.CarModel.Name),
             Spec("Yıl", x.Year?.ToString()),
             Spec("Kilometre", x.Kilometer.HasValue ? $"{x.Kilometer.Value.ToString("N0", Turkish)} km" : null),
             Spec("Yakıt", EnumHelper.GetDisplayName(x.FuelType)),
@@ -376,6 +490,7 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
 
     private class CardRow
     {
+        public Guid Id { get; set; }
         public string Title { get; set; }
         public string Slug { get; set; }
         public int ListingNo { get; set; }
@@ -387,6 +502,13 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
         public decimal? CampaignPrice { get; set; }
         public bool ShowPrice { get; set; }
         public VehicleStatus Status { get; set; }
-        public string CoverPath { get; set; }
+        public CoverRow Cover { get; set; }
+    }
+
+    private class CoverRow
+    {
+        public string SmallPath { get; set; }
+        public string MediumPath { get; set; }
+        public string LargePath { get; set; }
     }
 }

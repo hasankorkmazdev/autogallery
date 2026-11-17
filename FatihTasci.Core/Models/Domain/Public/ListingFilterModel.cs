@@ -5,9 +5,9 @@ namespace FatihTasci.Core.Models.Domain.Public;
 // Vitrin (Razor) sayfalarının modelleri. Değerler ekranda gösterilecek şekilde hazırlanır.
 
 /// <summary>
-/// /stok filtreleri. Marka ve seri adresten (slug), diğerleri query string'den gelir.
+/// /ilanlar filtreleri. Marka ve seri adresten (slug), diğerleri query string'den gelir.
 /// </summary>
-public class StockFilterModel
+public class ListingFilterModel
 {
     public string Brand { get; set; }
     public string Series { get; set; }

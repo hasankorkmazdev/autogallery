@@ -30,15 +30,15 @@ const ADD_DIALOG = {
     hint: "Örn. Alfa Romeo",
   },
   series: {
-    title: "Seri ekle",
-    description: "Seçili markaya yeni bir seri eklenir.",
-    label: "Seri adı",
+    title: "Model ekle",
+    description: "Seçili markaya yeni bir model eklenir.",
+    label: "Model adı",
     hint: "Örn. 3 Serisi",
   },
   model: {
-    title: "Model ekle",
-    description: "Seçili seriye yeni bir model (motor + paket) eklenir.",
-    label: "Model adı",
+    title: "Paket ekle",
+    description: "Seçili modele yeni bir paket (motor + donanım paketi) eklenir.",
+    label: "Paket adı",
     hint: "Örn. 320i M Sport",
   },
 } as const;
@@ -146,9 +146,9 @@ export function StepIdentity({ vehicle, onSaved, registerSave }: StepIdentityPro
           render={({ field }) => (
             <CatalogSelect
               id="series"
-              label="Seri"
+              label="Model"
               description="Önce marka seçin. Listede yoksa + ile ekleyin."
-              addTitle="Seri ekle"
+              addTitle="Model ekle"
               items={catalog.series}
               value={field.value}
               error={errors.seriesId?.message}
@@ -167,9 +167,9 @@ export function StepIdentity({ vehicle, onSaved, registerSave }: StepIdentityPro
           render={({ field }) => (
             <CatalogSelect
               id="model"
-              label="Model"
-              description="Motor ve paket, örn. 320i M Sport. Listede yoksa + ile ekleyin."
-              addTitle="Model ekle"
+              label="Paket"
+              description="Motor ve donanım paketi, örn. 320i M Sport. Listede yoksa + ile ekleyin."
+              addTitle="Paket ekle"
               items={catalog.models}
               value={field.value}
               error={errors.carModelId?.message}
@@ -185,7 +185,7 @@ export function StepIdentity({ vehicle, onSaved, registerSave }: StepIdentityPro
         <InputField
           id="title"
           label="İlan başlığı"
-          description="Marka, seri ve modelden otomatik önerilir; dilediğiniz gibi düzenleyebilirsiniz."
+          description="Marka, model ve paketten otomatik önerilir; dilediğiniz gibi düzenleyebilirsiniz."
           error={errors.title?.message}
           maxLength={150}
           autoComplete="off"

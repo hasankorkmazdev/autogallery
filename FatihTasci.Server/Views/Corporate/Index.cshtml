@@ -1,0 +1,74 @@
+@model SiteContentModel
+@inject FatihTasci.Core.Service.Domains.Abstracts.ISiteSettingService SettingService
+@{
+    var settings = await SettingService.GetAsync();
+    var galleryName = SiteFormat.GalleryName(settings);
+    var baseUrl = Urls.Base(Context.Request);
+    var hasVision = !string.IsNullOrWhiteSpace(Model.CorporateVision);
+    var hasMission = !string.IsNullOrWhiteSpace(Model.CorporateMission);
+    ViewData["Title"] = "Kurumsal";
+    ViewData["Description"] = string.IsNullOrWhiteSpace(Model.CorporateIntro) ? $"{galleryName} hakkında." : Model.CorporateIntro;
+    ViewData["Canonical"] = "/kurumsal";
+}
+@section Head {
+    @StructuredData.Script(StructuredData.Dealer(settings, baseUrl, baseUrl + ShareCards.SiteImagePath))
+    @StructuredData.Script(StructuredData.Breadcrumb(baseUrl, ("Ana Sayfa", "/"), ("Kurumsal", "/kurumsal")))
+}
+<section class="section page-head">
+    <div class="container">
+        <nav class="breadcrumb" aria-label="Konum">
+            <a href="/">Ana Sayfa</a> / Kurumsal
+        </nav>
+        <p class="eyebrow">Kurumsal</p>
+        <h1 class="display">@galleryName</h1>
+        @if (!string.IsNullOrWhiteSpace(Model.CorporateIntro))
+        {
+            <p class="lead">@Model.CorporateIntro</p>
+        }
+    </div>
+</section>
+
+<partial name="_Stats" model="Model.Stats" />
+
+@if (!string.IsNullOrWhiteSpace(Model.CorporateAbout))
+{
+    <section class="section" aria-labelledby="about-title">
+        <div class="container corporate-about">
+            <h2 id="about-title" class="section-title">Hakkımızda</h2>
+            <div class="prose">@SiteFormat.Paragraphs(Model.CorporateAbout)</div>
+        </div>
+    </section>
+}
+
+@if (hasVision || hasMission)
+{
+    <section class="section">
+        <div class="container corporate-statements">
+            @if (hasVision)
+            {
+                <article class="panel">
+                    <h2 class="panel-title">Vizyonumuz</h2>
+                    @SiteFormat.Paragraphs(Model.CorporateVision)
+                </article>
+            }
+            @if (hasMission)
+            {
+                <article class="panel">
+                    <h2 class="panel-title">Misyonumuz</h2>
+                    @SiteFormat.Paragraphs(Model.CorporateMission)
+                </article>
+            }
+        </div>
+    </section>
+}
+
+<section class="section">
+    <div class="container corporate-cta">
+        <h2 class="section-title">Showroomumuza bekleriz</h2>
+        <div class="hero-actions">
+            <a class="btn btn-primary" href="/ilanlar">Tüm ilanları incele</a>
+            <a class="btn btn-outline" href="/hizmetler">Hizmetlerimiz</a>
+            <a class="btn btn-outline" href="/iletisim">Ziyaret planla</a>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,64 @@
+@model HomePageModel
+@{
+    // Ana sayfada giriş videosunun (_Intro) altında: vitrindeki araçlardan mozaik (en çok 5; bkz. PublicVehicleService.GetHomeAsync).
+    // Masaüstünde 1 büyük + 4 küçük karo bir ekranı doldurur; mobilde büyük karo üstte, diğerleri 2×2.
+    var items = Model.Showcase;
+}
+<section class="showcase" id="vitrin" aria-labelledby="showcase-title">
+    <div class="container">
+        <div class="showcase-head">
+            <h2 id="showcase-title" class="showcase-title">Vitrindeki araçlar</h2>
+            <a class="showcase-all" href="/ilanlar">Tüm ilanlar <span class="muted">· @Model.ListingCount araç</span> <span aria-hidden="true">→</span></a>
+        </div>
+
+        @if (items.Count == 0)
+        {
+            <p class="muted">Şu anda yayında araç bulunmuyor.</p>
+        }
+        else
+        {
+            <div class="mosaic mosaic-@items.Count">
+                @for (var i = 0; i < items.Count; i++)
+                {
+                    var item = items[i];
+                    var lead = i == 0;
+                    var badge = SiteFormat.StatusBadge(item.Status);
+                    var campaign = SiteFormat.HasCampaign(item.Price, item.CampaignPrice, item.ShowPrice);
+                    var meta = string.Join(" · ", new[] { item.Year?.ToString(), item.Kilometer.HasValue ? SiteFormat.Km(item.Kilometer) : null, item.TransmissionName }
+                        .Where(x => !string.IsNullOrEmpty(x)));
+
+                    <a class="mosaic-tile @(lead ? "mosaic-lead" : null)" href="@item.Url">
+                        @if (item.CoverUrl != null)
+                        {
+                            @* Sayfanın en büyük görseli (LCP) giriş posteri; mozaik onun hemen altında, hemen yüklenir *@
+                            <img src="@item.CoverUrl"
+                                 srcset="@SiteFormat.SrcSet(item.CoverSmallUrl, item.CoverUrl, item.CoverLargeUrl)"
+                                 sizes="@(lead ? "(min-width: 960px) 50vw, 100vw" : "(min-width: 960px) 25vw, 50vw")"
+                                 alt="@item.CoverAlt" width="1280" height="853" decoding="async" />
+                        }
+                        else
+                        {
+                            <span class="mosaic-placeholder">Fotoğraf yok</span>
+                        }
+                        @if (badge != null)
+                        {
+                            <span class="badge badge-@item.Status.ToString().ToLowerInvariant()">@badge</span>
+                        }
+                        @if (campaign && item.Status != VehicleStatus.Sold)
+                        {
+                            <span class="badge badge-campaign">Kampanya</span>
+                        }
+                        <span class="mosaic-caption">
+                            <span class="mosaic-name">@item.Title</span>
+                            @if (meta.Length > 0)
+                            {
+                                <span class="mosaic-meta">@meta</span>
+                            }
+                            <span class="mosaic-price">@SiteFormat.PriceTag(item.Price, item.CampaignPrice, item.ShowPrice)</span>
+                        </span>
+                    </a>
+                }
+            </div>
+        }
+    </div>
+</section>

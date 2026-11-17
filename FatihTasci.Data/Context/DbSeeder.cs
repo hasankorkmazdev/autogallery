@@ -1,10 +1,13 @@
 using FatihTasci.Core.Entity.Catalog;
 using FatihTasci.Core.Entity.Common;
+using FatihTasci.Core.Entity.Crm;
 using FatihTasci.Core.Entity.Identity;
 using FatihTasci.Core.Entity.Inventory;
 using FatihTasci.Core.Enums;
 using FatihTasci.Core.Helpers;
 using FatihTasci.Core.Models.Domain.Setting;
+using FatihTasci.Core.Providers;
+using FatihTasci.Core.Service.Domains;
 using FatihTasci.Data.Context.Seed;
 using System.Globalization;
 using Microsoft.AspNetCore.Identity;
@@ -29,12 +32,32 @@ public static class DbSeeder
     /// SiteSettings'te uygulanan katalog seed sürümü. Katalog verisi değişince sürüm artırılır.
     /// </summary>
     private const string CatalogSeedVersionKey = "__CatalogSeedVersion";
-    private const int CatalogSeedVersion = 2;
+    private const int CatalogSeedVersion = 4;
+
+    /// <summary>
+    /// Örnek teslimatların uygulanan sürümü (SiteSettings). Her sürüm bir kez eklenir, silinen örnek geri gelmez.
+    /// Fotoğraflar ya da örnek listesi değişince sürüm artırılır; önceki sürümün örnekleri dosyalarıyla silinir.
+    /// </summary>
+    private const string DemoDeliveriesSeededKey = "__DemoDeliveriesSeeded";
+    private const int DemoDeliveriesSeedVersion = 3;
+
+    /// <summary>
+    /// Eklenmiş örnek araçların klasör adları (SiteSettings, virgülle ayrılmış). Her örnek bir kez eklenir; silinen
+    /// örnek geri gelmez, listeye yeni eklenen örnek bir sonraki açılışta eklenir.
+    /// </summary>
+    private const string DemoVehiclesSeededKey = "__DemoVehiclesSeeded";
+
+    private static readonly string[] DemoVehiclePhotoExtensions = { ".jpg", ".jpeg", ".png", ".webp" };
 
     private static readonly StringComparer NameOrder =
         StringComparer.Create(CultureInfo.GetCultureInfo("tr-TR"), CompareOptions.IgnoreCase | CompareOptions.NumericOrdering);
 
-    public static async Task SeedAsync(AppDbContext context, IConfiguration configuration, IPasswordHasher<UserEntity> passwordHasher, ILogger logger)
+    /// <param name="demoSeedFolder">
+    /// Örnek teslimat (Deliveries) ve örnek araç (Vehicles) fotoğraflarının kök klasörü; yalnız geliştirme ortamında
+    /// verilir, null ise örnek veri eklenmez.
+    /// </param>
+    public static async Task SeedAsync(AppDbContext context, IConfiguration configuration, IPasswordHasher<UserEntity> passwordHasher,
+        IMediaStorage storage, string demoSeedFolder, ILogger logger)
     {
         await SeedAdminAsync(context, configuration, passwordHasher, logger);
         await SeedColorsAsync(context);
@@ -42,6 +65,11 @@ public static class DbSeeder
         await SeedCatalogAsync(context);
         await SeedSettingsAsync(context);
         await SeedShowroomScenesAsync(context);
+        if (!string.IsNullOrEmpty(demoSeedFolder))
+        {
+            await SeedDemoDeliveriesAsync(context, storage, Path.Combine(demoSeedFolder, "Deliveries"), logger);
+            await SeedDemoVehiclesAsync(context, storage, Path.Combine(demoSeedFolder, "Vehicles"), logger);
+        }
     }
 
     private static async Task SeedAdminAsync(AppDbContext context, IConfiguration configuration, IPasswordHasher<UserEntity> passwordHasher, ILogger logger)
@@ -192,6 +220,7 @@ public static class DbSeeder
                 ["C Serisi"] = new[] { "C 200 AMG", "C 220 d 4MATIC", "C 300 e" },
                 ["E Serisi"] = new[] { "E 200 AMG", "E 220 d 4MATIC", "E 300 e" },
                 ["S Serisi"] = new[] { "S 400 d 4MATIC", "S 580 4MATIC" },
+                ["SL"] = new[] { "SL 43 AMG", "SL 63 AMG 4MATIC+" },
                 ["CLA"] = new[] { "CLA 200 AMG" },
                 ["CLE"] = new[] { "CLE 200 Coupe" },
                 ["GLA"] = new[] { "GLA 200 AMG" },
@@ -240,6 +269,10 @@ public static class DbSeeder
                 ["Model Y"] = new[] { "Model Y RWD", "Model Y Long Range AWD" },
                 ["Model S"] = new[] { "Model S Plaid" },
                 ["Model X"] = new[] { "Model X Plaid" }
+            },
+            ["MG"] = new()
+            {
+                ["MG7"] = new[] { "MG7 1.5 Passion", "MG7 1.5 Excellence", "MG7 1.5 Excellence Red Edition" }
             },
             ["Mini"] = new()
             {
@@ -351,7 +384,7 @@ public static class DbSeeder
             return;
 
         context.SiteSettings.AddRange(
-            new SiteSettingEntity { Key = nameof(SiteSettingsModel.GalleryName), Value = "Premium Oto Galeri" },
+            new SiteSettingEntity { Key = nameof(SiteSettingsModel.GalleryName), Value = "Fatih Taşçı Otomotiv" },
             new SiteSettingEntity { Key = nameof(SiteSettingsModel.WorkingHours), Value = "Pazartesi - Cumartesi 09:00 - 19:00" });
         await context.SaveChangesAsync();
     }
@@ -377,5 +410,255 @@ public static class DbSeeder
 
         context.ShowroomScenes.AddRange(scenes.Select((s, i) => new ShowroomSceneEntity { Tag = s.Tag, Title = s.Title, SortOrder = i }));
         await context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Geliştirme ortamı için örnek teslimatlar: Unsplash lisanslı stok fotoğraflar (Server/Assets/Seed/Deliveries,
+    /// kaynakları KAYNAK.md'de) panel yüklemesiyle aynı yoldan işlenir. Yayında çalışmaz: stok fotoğraf ve uydurma
+    /// müşteri adı canlı sitede gerçek teslimat gibi görünür ve ziyaretçiyi yanıltır.
+    /// </summary>
+    private static async Task SeedDemoDeliveriesAsync(AppDbContext context, IMediaStorage storage, string folder, ILogger logger)
+    {
+        if (string.IsNullOrEmpty(folder) || storage == null || !Directory.Exists(folder))
+            return;
+        var marker = await context.SiteSettings.FirstOrDefaultAsync(x => x.Key == DemoDeliveriesSeededKey);
+        if (marker != null && int.TryParse(marker.Value, out var appliedVersion) && appliedVersion >= DemoDeliveriesSeedVersion)
+            return;
+        if (marker != null)
+            await RemoveDemoDeliveriesAsync(context, storage, logger);
+
+        var samples = new (string File, string Vehicle, string Customer, string City, int DaysAgo)[]
+        {
+            ("01-rav4-cift.jpg", "2022 Toyota RAV4 2.5 Hybrid Passion", "Seda ve Onur K.", "İstanbul", 3),
+            ("02-jimny-alanya.jpg", "2021 Suzuki Jimny 1.5 GLX AllGrip", "Derya S.", "Antalya", 7),
+            ("03-audi-a3-ankara.jpg", "2023 Audi A3 Sedan 35 TFSI S line", "Burak E.", "Ankara", 12),
+            ("04-anahtar-alan-musteri.jpg", "2023 Toyota C-HR 1.8 Hybrid Passion X", "Serkan B.", "Kocaeli", 18),
+            ("05-arabasina-sarilan.jpg", "2022 Peugeot 3008 1.5 BlueHDi GT", "Okan Y.", "Bursa", 25),
+            ("06-golf-zonguldak.jpg", "2017 Volkswagen Golf 1.4 TSI Highline", "Mehmet A.", "Zonguldak", 33),
+            ("07-aile-anahtar.jpg", "2022 Volvo XC90 B5 Inscription", "Murat K.", "Eskişehir", 44),
+            ("08-civic-izmir.jpg", "2000 Honda Civic 1.6 VTi", "Emre T.", "İzmir", 56)
+        };
+
+        var written = new List<(bool IsPublic, string Path)>();
+        var added = 0;
+        try
+        {
+            foreach (var sample in samples)
+            {
+                var path = Path.Combine(folder, sample.File);
+                if (!File.Exists(path))
+                {
+                    logger.LogWarning("Örnek teslimat fotoğrafı bulunamadı: {Path}", path);
+                    continue;
+                }
+
+                var delivery = new DeliveryEntity
+                {
+                    VehicleTitle = sample.Vehicle,
+                    CustomerName = sample.Customer,
+                    City = sample.City,
+                    DeliveredAt = DateTime.Today.AddDays(-sample.DaysAgo)
+                };
+
+                await using var stream = File.OpenRead(path);
+                var files = await DeliveryService.WriteImagesAsync(storage, delivery, stream, Path.GetExtension(path), logger);
+                if (files == null)
+                {
+                    logger.LogWarning("Örnek teslimat fotoğrafı okunamadı: {Path}", path);
+                    continue;
+                }
+
+                written.AddRange(files);
+                context.Deliveries.Add(delivery);
+                added++;
+            }
+
+            if (marker == null)
+                context.SiteSettings.Add(new SiteSettingEntity { Key = DemoDeliveriesSeededKey, Value = DemoDeliveriesSeedVersion.ToString() });
+            else
+                marker.Value = DemoDeliveriesSeedVersion.ToString();
+            await context.SaveChangesAsync();
+        }
+        catch
+        {
+            // Kaydedilemeyen teslimatların dosyaları silinir; işaret yazılmadığı için bir sonraki açılışta yeniden denenir.
+            foreach (var (isPublic, path) in written)
+            {
+                try
+                {
+                    if (isPublic)
+                        storage.DeletePublic(path);
+                    else
+                        storage.DeletePrivate(path);
+                }
+                catch (IOException ex)
+                {
+                    logger.LogWarning(ex, "Dosya silinemedi: {Path}", path);
+                }
+            }
+            throw;
+        }
+
+        logger.LogInformation("{Count} örnek teslimat eklendi (yalnız geliştirme).", added);
+    }
+
+    /// <summary>
+    /// Önceki sürümün örnek teslimatlarını dosyalarıyla kaldırır. Seed'in eklediği kayıtların oluşturanı yoktur
+    /// (panelden eklenenlerde kullanıcı yazılır), böylece panelde eklenen teslimatlara dokunulmaz.
+    /// </summary>
+    private static async Task RemoveDemoDeliveriesAsync(AppDbContext context, IMediaStorage storage, ILogger logger)
+    {
+        var old = await context.Deliveries.IgnoreQueryFilters().Where(x => x.CreatedBy == null).ToListAsync();
+        if (old.Count == 0)
+            return;
+
+        foreach (var delivery in old)
+        {
+            foreach (var (isPublic, path) in new[] { (false, delivery.OriginalPath), (true, delivery.MediumPath), (true, delivery.LargePath) })
+            {
+                if (string.IsNullOrEmpty(path))
+                    continue;
+                try
+                {
+                    if (isPublic)
+                        storage.DeletePublic(path);
+                    else
+                        storage.DeletePrivate(path);
+                }
+                catch (IOException ex)
+                {
+                    logger.LogWarning(ex, "Dosya silinemedi: {Path}", path);
+                }
+            }
+        }
+
+        context.Deliveries.RemoveRange(old);
+        await context.SaveChangesAsync();
+        logger.LogInformation("Önceki {Count} örnek teslimat kaldırıldı.", old.Count);
+    }
+
+    /// <summary>
+    /// Geliştirme ortamı için yayında örnek araçlar (liste Seed/DemoVehicleSeedData.cs). Fotoğraflar
+    /// Server/Assets/Seed/Vehicles/{klasör} altındadır (kaynakları KAYNAK.md'de), dosya adı sırasıyla eklenir, ilki kapaktır;
+    /// panel yüklemesiyle aynı yoldan işlenir (filigransız).
+    /// Yayında çalışmaz: fotoğraflar başka galerinin ilanından, üzerlerinde o galerinin ve portalın filigranı var.
+    /// </summary>
+    private static async Task SeedDemoVehiclesAsync(AppDbContext context, IMediaStorage storage, string folder, ILogger logger)
+    {
+        if (storage == null || !Directory.Exists(folder))
+            return;
+
+        var marker = await context.SiteSettings.FirstOrDefaultAsync(x => x.Key == DemoVehiclesSeededKey);
+        var seeded = (marker?.Value ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries).ToHashSet();
+
+        var pending = DemoVehicleSeedData.Create().Where(x => !seeded.Contains(x.Folder)).ToList();
+        if (pending.Count == 0)
+            return;
+
+        var colors = await context.Colors.ToListAsync();
+        var features = await context.Features.ToListAsync();
+        var writtenPublic = new List<string>();
+        var writtenPrivate = new List<string>();
+        var added = 0;
+
+        try
+        {
+            foreach (var sample in pending)
+            {
+                var photoFolder = Path.Combine(folder, sample.Folder);
+                var photos = Directory.Exists(photoFolder)
+                    ? Directory.GetFiles(photoFolder)
+                        .Where(x => DemoVehiclePhotoExtensions.Contains(Path.GetExtension(x).ToLowerInvariant()))
+                        .OrderBy(x => Path.GetFileName(x), StringComparer.OrdinalIgnoreCase)
+                        .ToList()
+                    : new List<string>();
+                if (photos.Count == 0)
+                {
+                    logger.LogWarning("Örnek araç fotoğrafı bulunamadı: {Path}", photoFolder);
+                    continue;
+                }
+
+                var brandSlug = SlugHelper.Generate(sample.Brand);
+                var seriesSlug = SlugHelper.Generate(sample.Series);
+                var modelSlug = SlugHelper.Generate(sample.Model);
+                var model = await context.CarModels
+                    .Include(x => x.Series).ThenInclude(x => x.Brand)
+                    .FirstOrDefaultAsync(x => x.Slug == modelSlug && x.Series.Slug == seriesSlug && x.Series.Brand.Slug == brandSlug);
+                if (model == null)
+                {
+                    logger.LogWarning("Örnek araç kataloğu bulunamadı: {Brand} / {Series} / {Model}", sample.Brand, sample.Series, sample.Model);
+                    continue;
+                }
+
+                var vehicle = sample.Vehicle;
+                vehicle.Id = Guid.NewGuid();
+                vehicle.BrandId = model.Series.BrandId;
+                vehicle.SeriesId = model.SeriesId;
+                vehicle.CarModelId = model.Id;
+                vehicle.Slug = SlugHelper.ForVehicle(vehicle.Year, model.Series.Brand.Name, model.Name);
+                vehicle.ExteriorColorId = colors.FirstOrDefault(x => x.Name == sample.Color)?.Id;
+                vehicle.Status = VehicleStatus.Published;
+                vehicle.PublishedAt = DateTime.Now;
+
+                foreach (var part in Enum.GetValues<BodyPart>())
+                    vehicle.BodyParts.Add(new VehicleBodyPartEntity { Part = part, State = BodyPartState.Original });
+
+                foreach (var feature in features.Where(x => sample.Features.Contains(x.Name)))
+                    vehicle.Features.Add(new VehicleFeatureEntity { FeatureId = feature.Id });
+
+                for (var i = 0; i < photos.Count; i++)
+                {
+                    await using var stream = File.OpenRead(photos[i]);
+                    var media = await MediaService.WriteImageAsync(storage, vehicle.Id, stream, Path.GetExtension(photos[i]), null, writtenPublic, writtenPrivate);
+                    if (media == null)
+                    {
+                        logger.LogWarning("Örnek araç fotoğrafı okunamadı: {Path}", photos[i]);
+                        continue;
+                    }
+
+                    media.SortOrder = vehicle.Media.Count;
+                    media.IsCover = vehicle.Media.Count == 0;
+                    vehicle.Media.Add(media);
+                }
+
+                if (vehicle.Media.Count == 0)
+                    continue;
+
+                context.Vehicles.Add(vehicle);
+                seeded.Add(sample.Folder);
+                added++;
+            }
+
+            var value = string.Join(",", seeded);
+            if (marker == null)
+                context.SiteSettings.Add(new SiteSettingEntity { Key = DemoVehiclesSeededKey, Value = value });
+            else
+                marker.Value = value;
+            await context.SaveChangesAsync();
+        }
+        catch
+        {
+            // Kaydedilemeyen araçların dosyaları silinir; işaret yazılmadığı için bir sonraki açılışta yeniden denenir.
+            foreach (var path in writtenPublic)
+                TryDeleteFile(() => storage.DeletePublic(path), path, logger);
+            foreach (var path in writtenPrivate)
+                TryDeleteFile(() => storage.DeletePrivate(path), path, logger);
+            throw;
+        }
+
+        if (added > 0)
+            logger.LogInformation("{Count} örnek araç eklendi (yalnız geliştirme).", added);
+    }
+
+    private static void TryDeleteFile(Action delete, string path, ILogger logger)
+    {
+        try
+        {
+            delete();
+        }
+        catch (IOException ex)
+        {
+            logger.LogWarning(ex, "Dosya silinemedi: {Path}", path);
+        }
     }
 }

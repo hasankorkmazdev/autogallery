@@ -40,7 +40,7 @@ export default function LeadsPage() {
       <PageHeader
         title="Talepler"
         description="Siteden gelen bilgi, test sürüşü ve iletişim talepleri."
-        icon={<Inbox className="w-8 h-8" />}
+        icon={<Inbox />}
         actions={
           <Button variant="outline" size="icon" title="Yenile" onClick={() => setRefreshId((x) => x + 1)}>
             <RefreshCw className="w-4 h-4" />

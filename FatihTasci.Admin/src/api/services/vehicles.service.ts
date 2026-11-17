@@ -56,8 +56,11 @@ export interface VehiclePricingRequest {
   campaignPrice: number | null;
   showPrice: boolean;
   description: string | null;
+  contactName: string | null;
+  contactPhone: string | null;
   isFeatured: boolean;
   featuredOrder: number;
+  isOpportunity: boolean;
 }
 
 type DetailResult = ServiceResult<VehicleDetail>;

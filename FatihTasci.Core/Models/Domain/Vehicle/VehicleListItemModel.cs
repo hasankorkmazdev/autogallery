@@ -19,6 +19,7 @@ public class VehicleListItemModel
     public string CoverUrl { get; set; }
     public int PhotoCount { get; set; }
     public bool IsFeatured { get; set; }
+    public bool IsOpportunity { get; set; }
     public string PublicUrl { get; set; }
     public DateTime CreateDate { get; set; }
     public DateTime? LastUpdateDate { get; set; }

@@ -1,18 +1,25 @@
 @model HomePageModel
+@inject FatihTasci.Core.Service.Domains.Abstracts.ISiteSettingService SettingService
+@inject FatihTasci.Core.Service.Domains.Abstracts.ISiteContentService ContentService
 @{
+    var settings = await SettingService.GetAsync();
+    var content = await ContentService.GetAsync();
+    var baseUrl = Urls.Base(Context.Request);
     ViewData["Canonical"] = "/";
 }
-<section class="hero">
-    <div class="container">
-        <p class="eyebrow">Seçkin araçlar</p>
-        <h1 class="display">Her ayrıntısıyla şeffaf, özenle seçilmiş araçlar.</h1>
-        <p class="lead muted">Stoktaki @Model.StockCount aracın tamamını boya / değişen, Tramer ve donanım bilgisiyle inceleyin.</p>
-        <div class="hero-actions">
-            <a class="btn btn-primary" href="/stok">Stoğu İncele</a>
-            <a class="btn btn-outline" href="/iletisim">Bize Ulaşın</a>
-        </div>
-    </div>
-</section>
+@section Head {
+    @StructuredData.Script(StructuredData.Dealer(settings, baseUrl, baseUrl + ShareCards.SiteImagePath))
+    @StructuredData.Script(new Dictionary<string, object>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "WebSite",
+        ["name"] = SiteFormat.GalleryName(settings),
+        ["url"] = baseUrl + "/"
+    })
+}
+<partial name="_Intro" model="settings" />
+<partial name="_Showcase" model="Model" />
+<partial name="_OpportunityTicker" model="Model.Opportunities" />
 
 @if (Model.Brands.Count > 0)
 {
@@ -24,13 +31,21 @@
     </section>
 }
 
-@if (Model.Featured.Count > 0)
+<partial name="_Services" model="content.Services" />
+<partial name="_Stats" model="content.Stats" />
+
+<partial name="_Atmosphere" model="Model.Scenes" />
+
+@if (Model.Latest.Count > 0)
 {
     <section class="section">
         <div class="container">
-            <h2 class="section-title">Öne Çıkanlar</h2>
+            <div class="section-head">
+                <h2 class="section-title">Yeni Gelenler</h2>
+                <a href="/ilanlar">Tümünü gör</a>
+            </div>
             <div class="grid">
-                @foreach (var item in Model.Featured)
+                @foreach (var item in Model.Latest)
                 {
                     <partial name="_VehicleCard" model="item" />
                 }
@@ -39,26 +54,6 @@
     </section>
 }
 
-<partial name="_Atmosphere" model="Model.Scenes" />
+<partial name="_Deliveries" model="Model.Deliveries" />
 
-<section class="section">
-    <div class="container">
-        <div class="section-head">
-            <h2 class="section-title">Yeni Gelenler</h2>
-            <a href="/stok">Tümünü gör</a>
-        </div>
-        @if (Model.Latest.Count == 0)
-        {
-            <p class="muted">Şu anda yayında araç bulunmuyor.</p>
-        }
-        else
-        {
-            <div class="grid">
-                @foreach (var item in Model.Latest)
-                {
-                    <partial name="_VehicleCard" model="item" />
-                }
-            </div>
-        }
-    </div>
-</section>
+<partial name="_Location" model="settings" />

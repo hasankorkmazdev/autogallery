@@ -1,0 +1,125 @@
+@model CreateSellLeadRequestModel
+@*
+    "Aracımı Satmak İstiyorum" sayfasındaki fotoğraflı teklif formu (talep türü: Aracını Sat / Takas).
+    JS'siz de çalışır (düz multipart gönderim). site.js [data-sell-form]: fotoğrafları biriktirir, önizler,
+    göndermeden önce küçültür (uzun kenar 2000 px) ve zorunlu alanları sunucuya gitmeden denetler.
+    Kurallar sunucuda CreateSellLeadRequestModelValidator'dadır; buradaki data-error metinleri onunla aynıdır.
+*@
+@{
+    var action = ViewData["SellAction"] as string;
+    var brands = ViewData["SellBrands"] as List<string> ?? new List<string>();
+    var photosLost = ViewData["PhotosLost"] is true;
+    var maxYear = DateTime.Today.Year + 1;
+    var maxMb = CreateSellLeadRequestModel.MaxPhotoBytes / 1024 / 1024;
+}
+<section id="teklif" class="panel sell-form" aria-labelledby="sell-form-title">
+    <h2 id="sell-form-title" class="panel-title">Aracınızı alalım</h2>
+    <p class="muted sell-form-intro">Aracınızın bilgilerini ve birkaç fotoğrafını gönderin; inceleyip teklifimizle size dönelim.</p>
+
+    @if (TempData["FormSuccess"] is string success)
+    {
+        <div class="alert alert-success" role="status">@success</div>
+    }
+
+    <form method="post" action="@action#teklif" enctype="multipart/form-data" class="form" autocomplete="off" novalidate
+          data-sell-form data-max-photos="@CreateSellLeadRequestModel.MaxPhotos" data-max-bytes="@CreateSellLeadRequestModel.MaxPhotoBytes">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="alert alert-error"></div>
+        <div class="hp" aria-hidden="true"><label>Web sitesi<input type="text" name="Website" tabindex="-1" autocomplete="off" /></label></div>
+
+        <fieldset class="form-section">
+            <legend>Aracınız</legend>
+            <div class="form-grid">
+                <label>Marka
+                    <input asp-for="SellBrand" list="sell-brands" maxlength="60" autocomplete="off" required data-error="Marka zorunludur." />
+                    <span asp-validation-for="SellBrand" class="field-error"></span>
+                </label>
+                <label>Model
+                    <input asp-for="SellModel" maxlength="120" autocomplete="off" placeholder="ör. 3 Serisi" required data-error="Model zorunludur." />
+                    <span asp-validation-for="SellModel" class="field-error"></span>
+                </label>
+                <label>Paket (isteğe bağlı)
+                    <input asp-for="SellPackage" maxlength="120" autocomplete="off" placeholder="ör. 320i M Sport" />
+                    <span asp-validation-for="SellPackage" class="field-error"></span>
+                </label>
+                <label>Model yılı
+                    <select asp-for="SellYear" required data-error="Model yılını seçin.">
+                        <option value="">Seçin</option>
+                        @for (var year = maxYear; year >= CreateSellLeadRequestModel.MinYear; year--)
+                        {
+                            <option value="@year">@year</option>
+                        }
+                    </select>
+                    <span asp-validation-for="SellYear" class="field-error"></span>
+                </label>
+                <label>Kilometre
+                    <input asp-for="SellKm" type="text" inputmode="numeric" maxlength="13" autocomplete="off" placeholder="ör. 85.000"
+                           required pattern="[0-9 .,]{1,13}" data-error-required="Kilometre zorunludur." data-error="Geçerli bir kilometre girin." />
+                    <span asp-validation-for="SellKm" class="field-error"></span>
+                </label>
+                <label>Hasar durumu
+                    <select asp-for="SellDamage" required data-error="Hasar durumunu seçin.">
+                        <option value="">Seçin</option>
+                        @foreach (var option in EnumHelper.GetOptions<SellDamageState>())
+                        {
+                            <option value="@option.Value">@option.Label</option>
+                        }
+                    </select>
+                    <span asp-validation-for="SellDamage" class="field-error"></span>
+                </label>
+                <label>Beklediğiniz fiyat (isteğe bağlı)
+                    <input asp-for="SellExpectedPrice" type="text" inputmode="numeric" maxlength="15" autocomplete="off" placeholder="TL"
+                           pattern="[0-9 .,]{1,15}" data-error="Geçerli bir fiyat girin." />
+                    <span asp-validation-for="SellExpectedPrice" class="field-error"></span>
+                </label>
+            </div>
+            <datalist id="sell-brands">
+                @foreach (var brand in brands)
+                {
+                    <option value="@brand"></option>
+                }
+            </datalist>
+            <label>Hasar, tramer ve eklemek istedikleriniz (isteğe bağlı)
+                <textarea asp-for="Message" rows="4" maxlength="2000" placeholder="ör. Sağ ön kapı boyalı, tramer kaydı 12.000 TL, bakımları yetkili serviste."></textarea>
+                <span asp-validation-for="Message" class="field-error"></span>
+            </label>
+        </fieldset>
+
+        <fieldset class="form-section">
+            <legend>Fotoğraflar</legend>
+            <p class="muted form-hint">Önden, arkadan, iki yandan, iç mekândan ve gösterge panelinden çekilen fotoğraflar teklifi hızlandırır. En fazla @CreateSellLeadRequestModel.MaxPhotos fotoğraf; JPG, PNG ya da WebP, her biri en çok @maxMb MB.</p>
+            @if (photosLost)
+            {
+                <p class="alert alert-error">Seçtiğiniz fotoğraflar güvenlik gereği formda tutulamadı; formu düzeltip fotoğrafları yeniden seçin.</p>
+            }
+            <label>Fotoğraf seçin (isteğe bağlı)
+                <input type="file" id="Photos" name="Photos" class="file-input" accept="image/jpeg,image/png,image/webp" multiple data-photo-input />
+            </label>
+            <p class="muted photo-status" data-photo-status aria-live="polite"></p>
+            <ul class="photo-previews" data-photo-previews></ul>
+            <span asp-validation-for="Photos" class="field-error"></span>
+        </fieldset>
+
+        <fieldset class="form-section">
+            <legend>İletişim bilgileriniz</legend>
+            <div class="form-grid">
+                <label>Ad soyad
+                    <input asp-for="FullName" maxlength="100" autocomplete="off" required data-error="Ad soyad zorunludur." />
+                    <span asp-validation-for="FullName" class="field-error"></span>
+                </label>
+                <label>Telefon
+                    <input asp-for="Phone" type="tel" maxlength="20" autocomplete="off" required pattern="[0-9 +\(\)\-]{10,20}"
+                           data-error-required="Telefon zorunludur." data-error="Geçerli bir telefon numarası girin." />
+                    <span asp-validation-for="Phone" class="field-error"></span>
+                </label>
+            </div>
+            <label class="checkbox">
+                <input type="checkbox" name="KvkkConsent" value="true" required data-error="Devam etmek için aydınlatma metnini onaylayın." @(Model.KvkkConsent ? "checked" : null) />
+                <span><a href="/kvkk" target="_blank">Aydınlatma metnini</a> okudum, kişisel verilerimin ve fotoğraflarımın teklif için işlenmesine onay veriyorum.</span>
+            </label>
+            <span asp-validation-for="KvkkConsent" class="field-error"></span>
+        </fieldset>
+
+        <button type="submit" class="btn btn-primary sell-submit">Teklif iste</button>
+    </form>
+</section>

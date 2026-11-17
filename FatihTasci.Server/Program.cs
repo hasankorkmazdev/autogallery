@@ -157,6 +157,16 @@ public class Program
                 };
                 options.Events = new JwtBearerEvents
                 {
+                    // Token yalnız HttpOnly oturum çerezinden okunur; çerez yoksa Authorization başlığına düşülmez.
+                    OnMessageReceived = context =>
+                    {
+                        var token = context.Request.Cookies[AuthCookie.Name];
+                        if (string.IsNullOrEmpty(token))
+                            context.NoResult();
+                        else
+                            context.Token = token;
+                        return Task.CompletedTask;
+                    },
                     // Pasife alınan ya da rolü değişen kullanıcının eski token'ı reddedilir (panel girişe döner).
                     OnTokenValidated = async context =>
                     {
@@ -215,13 +225,18 @@ public class Program
         services.AddScoped<IMediaService, MediaService>();
         services.AddScoped<ILeadService, LeadService>();
         services.AddScoped<ISiteSettingService, SiteSettingService>();
+        services.AddScoped<ISiteContentService, SiteContentService>();
         services.AddScoped<IShowroomService, ShowroomService>();
+        services.AddScoped<IDeliveryService, DeliveryService>();
         services.AddScoped<IPublicVehicleService, PublicVehicleService>();
         services.AddSingleton<IMediaRegenerationRunner, MediaRegenerationRunner>();
+        services.AddSingleton<IShareImageService, ShareImageService>();
+        services.AddSingleton<SiteUrlBuilder>();
     }
 
     private static void ConfigureMiddleware(WebApplication app)
     {
+        app.UseSecurityHeaders();
         app.UseServiceResultResponseProccesor();
         app.UseGlobalExceptionHandler();
 
@@ -253,6 +268,18 @@ public class Program
             context => !IsApiOrAsset(context.Request.Path),
             branch => branch.UseStatusCodePagesWithReExecute("/hata/{0}"));
 
+        // Panelin router basename'i "/panel/": sondaki eğik çizgi olmadan gelen istek yönlendirilir, yoksa panel boş açılır.
+        // (Routing sondaki eğik çizgiyi yok saydığı için endpoint değil, tam yol karşılaştırması.)
+        app.Use((context, next) =>
+        {
+            if (string.Equals(context.Request.Path.Value, "/panel", StringComparison.OrdinalIgnoreCase))
+            {
+                context.Response.Redirect("/panel/" + context.Request.QueryString, permanent: true);
+                return Task.CompletedTask;
+            }
+            return next(context);
+        });
+
         app.UseStaticFiles();
 
         var storage = app.Services.GetRequiredService<IMediaStorage>();
@@ -267,6 +294,7 @@ public class Program
             }
         });
 
+        app.UseApiCsrfProtection();
         app.UseRouting();
         app.UseRateLimiter();
         app.UseAuthentication();
@@ -290,10 +318,16 @@ public class Program
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
         context.Database.Migrate();
+        // Örnek teslimat ve araçlar yalnız geliştirmede (stok / başka galerinin fotoğrafları canlıda gerçek gibi görünür).
+        var demoSeedFolder = app.Environment.IsDevelopment()
+            ? Path.Combine(app.Environment.ContentRootPath, "Assets", "Seed")
+            : null;
         DbSeeder.SeedAsync(
                 context,
                 app.Configuration,
                 scope.ServiceProvider.GetRequiredService<IPasswordHasher<UserEntity>>(),
+                scope.ServiceProvider.GetRequiredService<IMediaStorage>(),
+                demoSeedFolder,
                 logger)
             .GetAwaiter()
             .GetResult();

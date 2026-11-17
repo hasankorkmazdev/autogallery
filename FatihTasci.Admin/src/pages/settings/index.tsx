@@ -6,9 +6,7 @@ import { PageLoader } from "@/components/page-loader";
 import { settingsService } from "@/api/services/settings.service";
 import type { SiteSettings } from "@/api/types";
 import { useSiteSettingsStore } from "@/store/site-settings-store";
-import { SettingsForm } from "./components/settings-form";
-import { LogoCard } from "./components/logo-card";
-import { WatermarkCard } from "./components/watermark-card";
+import { SettingsTabs } from "./components/settings-tabs";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
@@ -29,20 +27,12 @@ export default function SettingsPage() {
 
   const renderContent = () => {
     if (!settings) return <PageLoader />;
-    return (
-      <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <LogoCard settings={settings} onChanged={handleChanged} />
-          <WatermarkCard />
-        </div>
-        <SettingsForm settings={settings} onSaved={handleChanged} />
-      </div>
-    );
+    return <SettingsTabs settings={settings} onChanged={handleChanged} />;
   };
 
   return (
     <PageLayout className="overflow-y-auto">
-      <PageHeader title="Ayarlar" description="Firma adı ve logosu, filigran, iletişim bilgileri ve bağlantılar." icon={<Settings className="w-8 h-8" />} />
+      <PageHeader title="Ayarlar" description="Firma ve iletişim bilgileri, konum, sosyal medya bağlantıları, logo ve filigran." icon={<Settings />} />
       {renderContent()}
     </PageLayout>
   );

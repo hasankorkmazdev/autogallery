@@ -1,0 +1,48 @@
+@model SiteSettingsModel
+@{
+    // Galeri konumu: adres, çalışma saatleri, yol tarifi ve harita. Konum (koordinat ya da adres) yoksa hiçbir şey basılmaz.
+    // Harita Google'dan yüklendiği için ziyaretçi "Haritayı göster"e basana kadar yüklenmez (KVKK; site.js data-map).
+    var embed = MapLinks.Embed(Model);
+    if (embed == null)
+    {
+        return;
+    }
+    var tel = SiteFormat.TelLink(Model.Phone);
+    var heading = ViewData["LocationTitle"] as string ?? "Galerimizi ziyaret edin";
+}
+<section class="section location" aria-labelledby="location-title">
+    <div class="container location-grid">
+        <div class="location-info">
+            <p class="eyebrow">Konum</p>
+            <h2 id="location-title" class="section-title">@heading</h2>
+            @if (!string.IsNullOrWhiteSpace(Model.Address))
+            {
+                <address class="location-address">@Model.Address</address>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.WorkingHours))
+            {
+                <p class="muted">@Model.WorkingHours</p>
+            }
+            <div class="location-actions">
+                <a class="btn btn-primary" href="@MapLinks.Directions(Model)" target="_blank" rel="noopener">Yol tarifi al</a>
+                @if (tel != null)
+                {
+                    <a class="btn btn-outline" href="@tel">Ara: @Model.Phone</a>
+                }
+            </div>
+            <p class="location-apps muted">
+                Diğer uygulamalarda aç:
+                <a href="@MapLinks.AppleMaps(Model)" target="_blank" rel="noopener">Apple Haritalar</a> ·
+                <a href="@MapLinks.Yandex(Model)" target="_blank" rel="noopener">Yandex Haritalar</a>
+            </p>
+        </div>
+        <div class="map" data-map data-map-src="@embed">
+            <div class="map-placeholder">
+                <span class="map-pin" aria-hidden="true"></span>
+                <p class="muted">Harita Google Haritalar'dan yüklenir.</p>
+                <button type="button" class="btn btn-outline" data-map-load>Haritayı göster</button>
+                <a class="map-link" href="@MapLinks.GoogleMaps(Model)" target="_blank" rel="noopener">Google Haritalar'da aç</a>
+            </div>
+        </div>
+    </div>
+</section>

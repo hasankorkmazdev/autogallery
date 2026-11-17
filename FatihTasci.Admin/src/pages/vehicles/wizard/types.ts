@@ -13,7 +13,7 @@ export interface StepProps {
 }
 
 export const WIZARD_STEPS = [
-  { step: 1, title: "Kimlik", description: "Marka, seri, model" },
+  { step: 1, title: "Kimlik", description: "Marka, model, paket" },
   { step: 2, title: "Teknik", description: "Yıl, km, motor" },
   { step: 3, title: "Durum", description: "Garanti, Tramer" },
   { step: 4, title: "Boya / Değişen", description: "13 parça" },

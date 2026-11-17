@@ -1,13 +1,23 @@
 @inject FatihTasci.Core.Service.Domains.Abstracts.ISiteSettingService SettingService
 @{
     var settings = await SettingService.GetAsync();
-    var galleryName = string.IsNullOrWhiteSpace(settings.GalleryName) ? "Oto Galeri" : settings.GalleryName;
+    var galleryName = SiteFormat.GalleryName(settings);
     var pageTitle = ViewData["Title"] as string;
     var fullTitle = string.IsNullOrEmpty(pageTitle) ? galleryName : $"{pageTitle} | {galleryName}";
-    var description = ViewData["Description"] as string ?? $"{galleryName} — seçkin ikinci el ve sıfır araçlar.";
+    var description = SiteFormat.Truncate(ViewData["Description"] as string ?? $"{galleryName} — {ShareCards.SiteTagline.ToLower(new System.Globalization.CultureInfo("tr-TR"))}.");
+    // SEO: canonical ve og:url tam adres (Site:BaseUrl), og:image 1200×630 paylaşım görseli (ShareImageController)
     var canonical = ViewData["Canonical"] as string;
+    var canonicalUrl = Urls.Absolute(Context.Request, canonical);
+    var pageUrl = canonicalUrl ?? Urls.Absolute(Context.Request, Context.Request.Path);
+    var ogImage = Urls.Absolute(Context.Request, ViewData["OgImage"] as string ?? ShareCards.SiteImagePath);
+    var ogImageAlt = ViewData["OgImageAlt"] as string ?? galleryName;
+    var ogType = ViewData["OgType"] as string ?? "website";
+    var robots = ViewData["Robots"] as string;
     var whatsApp = SiteFormat.WhatsAppLink(settings.WhatsApp, ViewData["WhatsAppMessage"] as string ?? "Merhaba, araçlarınız hakkında bilgi almak istiyorum.");
     var tel = SiteFormat.TelLink(settings.Phone);
+    // İlan sayfası, ilan yetkilisinin numaralarıyla mobil çubuğu değiştirebilir.
+    var pageWhatsApp = ViewData["PageWhatsApp"] as string ?? whatsApp;
+    var pageTel = ViewData["PageTel"] as string ?? tel;
     var path = Context.Request.Path.Value ?? "/";
 }
 <!DOCTYPE html>
@@ -17,17 +27,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@fullTitle</title>
     <meta name="description" content="@description" />
-    @if (!string.IsNullOrEmpty(canonical))
+    @if (robots != null)
     {
-        <link rel="canonical" href="@($"{Context.Request.Scheme}://{Context.Request.Host}{canonical}")" />
+        <meta name="robots" content="@robots" />
     }
+    @if (canonicalUrl != null)
+    {
+        <link rel="canonical" href="@canonicalUrl" />
+    }
+    <meta property="og:type" content="@ogType" />
+    <meta property="og:site_name" content="@galleryName" />
+    <meta property="og:locale" content="tr_TR" />
     <meta property="og:title" content="@fullTitle" />
     <meta property="og:description" content="@description" />
-    @if (ViewData["OgImage"] is string ogImage)
-    {
-        <meta property="og:image" content="@($"{Context.Request.Scheme}://{Context.Request.Host}{ogImage}")" />
-    }
+    <meta property="og:url" content="@pageUrl" />
+    <meta property="og:image" content="@ogImage" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="@ogImageAlt" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@fullTitle" />
+    <meta name="twitter:description" content="@description" />
+    <meta name="twitter:image" content="@ogImage" />
     <meta name="theme-color" content="#0B0B0C" />
+    @* Türkçe metinde latin ve latin-ext birlikte gerekir; ilk çizimde beklememek için önceden yüklenir *@
+    <link rel="preload" href="/fonts/manrope-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/cormorant-garamond-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     @await RenderSectionAsync("Head", required: false)
 </head>
@@ -35,16 +61,23 @@
     <a class="skip-link" href="#main">İçeriğe geç</a>
     <header class="site-header">
         <div class="container header-inner">
+            @* Logo firma adını içeren kelime logosudur: logo varsa ad ayrıca yazılmaz (alt metni addır). *@
             <a class="brand" href="/">
                 @if (settings.LogoUrl != null)
                 {
-                    <img class="brand-mark" src="@settings.LogoUrl" alt="" />
+                    <img class="brand-mark" src="@settings.LogoUrl" alt="@galleryName" />
                 }
-                <span>@galleryName</span>
+                else
+                {
+                    <span>@galleryName</span>
+                }
             </a>
             <nav class="main-nav" aria-label="Ana menü">
-                <a href="/" class="@(path == "/" ? "active" : null)">Ana Sayfa</a>
-                <a href="/stok" class="@(path.StartsWith("/stok") || path.StartsWith("/arac") ? "active" : null)">Stok</a>
+                <a href="/" class="nav-home @(path == "/" ? "active" : null)">Ana Sayfa</a>
+                <a href="/ilanlar" class="@(path.StartsWith("/ilanlar") || path.StartsWith("/arac") ? "active" : null)">Tüm İlanlar</a>
+                <a href="/hizmetler" class="@(path.StartsWith("/hizmetler") ? "active" : null)">Hizmetler</a>
+                <a href="/teslimatlar" class="@(path.StartsWith("/teslimatlar") ? "active" : null)">Teslimatlar</a>
+                <a href="/kurumsal" class="@(path.StartsWith("/kurumsal") ? "active" : null)">Kurumsal</a>
                 <a href="/iletisim" class="@(path.StartsWith("/iletisim") ? "active" : null)">İletişim</a>
             </nav>
             @if (tel != null)
@@ -64,18 +97,26 @@
                 <div class="brand">
                     @if (settings.LogoUrl != null)
                     {
-                        <img class="brand-mark" src="@settings.LogoUrl" alt="" />
+                        <img class="brand-mark" src="@settings.LogoUrl" alt="@galleryName" />
                     }
-                    <span>@galleryName</span>
+                    else
+                    {
+                        <span>@galleryName</span>
+                    }
                 </div>
                 @if (!string.IsNullOrWhiteSpace(settings.Address))
                 {
                     <p class="muted">@settings.Address</p>
                 }
+                @if (MapLinks.HasLocation(settings))
+                {
+                    <p><a href="@MapLinks.Directions(settings)" target="_blank" rel="noopener">Yol tarifi al</a></p>
+                }
                 @if (!string.IsNullOrWhiteSpace(settings.WorkingHours))
                 {
                     <p class="muted">@settings.WorkingHours</p>
                 }
+                <partial name="_SocialLinks" model="settings.SocialLinks" />
             </div>
             <div>
                 <h2 class="footer-title">İletişim</h2>
@@ -94,7 +135,10 @@
             </div>
             <div>
                 <h2 class="footer-title">Bağlantılar</h2>
-                <p><a href="/stok">Stoktaki Araçlar</a></p>
+                <p><a href="/ilanlar">Tüm İlanlar</a></p>
+                <p><a href="/hizmetler">Hizmetler</a></p>
+                <p><a href="/teslimatlar">Teslimatlar</a></p>
+                <p><a href="/kurumsal">Kurumsal</a></p>
                 <p><a href="/iletisim">İletişim</a></p>
                 <p><a href="/kvkk">KVKK Aydınlatma Metni</a></p>
             </div>
@@ -102,16 +146,16 @@
         <div class="container footer-bottom muted">© @DateTime.Now.Year @galleryName</div>
     </footer>
 
-    @if (tel != null || whatsApp != null)
+    @if (pageTel != null || pageWhatsApp != null)
     {
         <div class="mobile-bar">
-            @if (tel != null)
+            @if (pageTel != null)
             {
-                <a class="btn btn-outline" href="@tel">Ara</a>
+                <a class="btn btn-outline" href="@pageTel">Ara</a>
             }
-            @if (whatsApp != null)
+            @if (pageWhatsApp != null)
             {
-                <a class="btn btn-primary" href="@whatsApp" target="_blank" rel="noopener">WhatsApp</a>
+                <a class="btn btn-primary" href="@pageWhatsApp" target="_blank" rel="noopener">WhatsApp</a>
             }
         </div>
     }

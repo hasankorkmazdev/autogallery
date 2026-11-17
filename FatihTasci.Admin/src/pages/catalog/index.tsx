@@ -15,7 +15,7 @@ interface DialogState {
   initial: CatalogItemValues | null;
 }
 
-const LEVEL_TITLES: Record<Level, string> = { brand: "Marka", series: "Seri", model: "Model" };
+const LEVEL_TITLES: Record<Level, string> = { brand: "Marka", series: "Model", model: "Paket" };
 
 // Marka → Seri → Model kataloğu
 export default function CatalogPage() {
@@ -74,14 +74,14 @@ export default function CatalogPage() {
   return (
     <PageLayout>
       <PageHeader
-        title="Katalog"
-        description="Marka, seri ve model listesi. Araç girerken eksik kayıt sihirbazdan da eklenebilir."
-        icon={<Library className="w-8 h-8" />}
+        title="Araç Katalog Yapısı"
+        description="Marka, model ve paket listesi. Araç girerken eksik kayıt sihirbazdan da eklenebilir."
+        icon={<Library />}
       />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <CatalogListPanel
           title="Markalar"
-          description="Seri listesi için bir marka seçin."
+          description="Model listesi için bir marka seçin."
           emptyText="Marka yok."
           items={brands.map((b) => ({ id: b.id, name: b.name, slug: b.slug, isActive: b.isActive, count: b.seriesCount, logoUrl: b.logoUrl }))}
           selectedId={brandId}
@@ -93,9 +93,9 @@ export default function CatalogPage() {
           onEdit={(id) => setDialog({ level: "brand", id, initial: initialValues("brand", id) })}
         />
         <CatalogListPanel
-          title="Seriler"
-          description="Model listesi için bir seri seçin."
-          emptyText={brandId ? "Bu markada seri yok." : "Önce marka seçin."}
+          title="Modeller"
+          description="Paket listesi için bir model seçin."
+          emptyText={brandId ? "Bu markada model yok." : "Önce marka seçin."}
           items={series.map((s) => ({ id: s.id, name: s.name, slug: s.slug, isActive: s.isActive, count: s.modelCount }))}
           selectedId={seriesId}
           disabled={!brandId}
@@ -104,9 +104,9 @@ export default function CatalogPage() {
           onEdit={(id) => setDialog({ level: "series", id, initial: initialValues("series", id) })}
         />
         <CatalogListPanel
-          title="Modeller"
-          description="Motor ve paket, örn. 320i M Sport."
-          emptyText={seriesId ? "Bu seride model yok." : "Önce seri seçin."}
+          title="Paketler"
+          description="Motor ve donanım paketi, örn. 320i M Sport."
+          emptyText={seriesId ? "Bu modelde paket yok." : "Önce model seçin."}
           items={models.map((m) => ({ id: m.id, name: m.name, slug: m.slug, isActive: m.isActive }))}
           disabled={!seriesId}
           onAdd={() => setDialog({ level: "model", id: null, initial: null })}

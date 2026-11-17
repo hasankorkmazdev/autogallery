@@ -59,7 +59,7 @@ public class ContactController : Controller
             TempData["FormError"] = ModelState.Values.SelectMany(x => x.Errors).Select(x => x.ErrorMessage).FirstOrDefault();
         }
 
-        var target = Url.IsLocalUrl(returnUrl) ? returnUrl : "/stok";
+        var target = Url.IsLocalUrl(returnUrl) ? returnUrl : "/ilanlar";
         return Redirect(target + "#talep");
     }
 }

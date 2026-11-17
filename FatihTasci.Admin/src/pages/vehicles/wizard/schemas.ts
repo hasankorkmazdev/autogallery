@@ -22,8 +22,8 @@ const numberInRange = (requiredMessage: string, min: number, max: number, rangeM
 
 export const identitySchema = z.object({
   brandId: requiredNumber("Marka seçin."),
-  seriesId: requiredNumber("Seri seçin."),
-  carModelId: requiredNumber("Model seçin."),
+  seriesId: requiredNumber("Model seçin."),
+  carModelId: requiredNumber("Paket seçin."),
   title: z.string().trim().min(1, "İlan başlığı zorunludur.").max(150, "İlan başlığı en fazla 150 karakter olabilir."),
 });
 export type IdentityValues = z.input<typeof identitySchema>;
@@ -172,10 +172,20 @@ export const pricingSchema = z
     campaignPrice: z.number().nullable(),
     showPrice: z.boolean(),
     description: z.string().max(10000, "Açıklama en fazla 10.000 karakter olabilir."),
+    // İlan yetkilisi ve telefonu isteğe bağlı; boşsa sitede galeri telefonu kullanılır.
+    contactName: z.string().trim().max(80, "Yetkili adı en fazla 80 karakter olabilir."),
+    contactPhone: z
+      .string()
+      .trim()
+      .refine((v) => v === "" || /^[0-9 +()-]{10,20}$/.test(v), { message: "Geçerli bir telefon numarası girin." }),
     isFeatured: z.boolean(),
     featuredOrder: z.number().min(0, "Vitrin sırası 0 ya da daha büyük olmalıdır."),
+    isOpportunity: z.boolean(),
   })
   .superRefine((v, ctx) => {
+    if (v.contactName !== "" && v.contactPhone === "") {
+      ctx.addIssue({ code: "custom", path: ["contactPhone"], message: "Yetkili adı girildiyse telefon da girilmelidir." });
+    }
     if (v.campaignPrice === null) return;
     if (v.campaignPrice <= 0) {
       ctx.addIssue({ code: "custom", path: ["campaignPrice"], message: "Kampanyalı fiyat 0'dan büyük olmalıdır." });

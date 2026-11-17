@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { FieldGroup } from "@/components/ui/field";
 import { InputField } from "@/components/ui/input-field";
-import { NumberField, SelectField, SwitchField } from "@/components/form/form-fields";
+import { SelectField, SwitchField } from "@/components/form/form-fields";
 import { catalogService } from "@/api/services/catalog.service";
 import type { Feature } from "@/api/types";
 import { useLookupStore } from "@/store/lookup-store";
@@ -22,7 +22,6 @@ import { useLookupStore } from "@/store/lookup-store";
 const schema = z.object({
   category: z.number().nullable().refine((v) => v !== null, { message: "Kategori seçin." }),
   name: z.string().trim().min(1, "Donanım adı zorunludur.").max(80, "Donanım adı en fazla 80 karakter olabilir."),
-  sortOrder: z.number().min(0, "Sıra 0 ya da daha büyük olmalıdır."),
   isActive: z.boolean(),
 });
 type Values = z.input<typeof schema>;
@@ -45,7 +44,7 @@ export function FeatureDialog({ state, onOpenChange, onSaved }: FeatureDialogPro
   const [saving, setSaving] = useState(false);
   const form = useForm<Values, unknown, Output>({
     resolver: zodResolver(schema),
-    defaultValues: { category: null, name: "", sortOrder: 0, isActive: true },
+    defaultValues: { category: null, name: "", isActive: true },
   });
   const { errors } = form.formState;
 
@@ -55,7 +54,6 @@ export function FeatureDialog({ state, onOpenChange, onSaved }: FeatureDialogPro
     form.reset({
       category: f?.category ?? state.category,
       name: f?.name ?? "",
-      sortOrder: f?.sortOrder ?? 0,
       isActive: f?.isActive ?? true,
     });
   }, [state, form]);
@@ -63,7 +61,7 @@ export function FeatureDialog({ state, onOpenChange, onSaved }: FeatureDialogPro
   const submit = async (values: Output) => {
     setSaving(true);
     try {
-      const request = { category: values.category!, name: values.name.trim(), sortOrder: values.sortOrder, isActive: values.isActive };
+      const request = { category: values.category!, name: values.name.trim(), isActive: values.isActive };
       const result = state?.feature
         ? await catalogService.updateFeature(state.feature.id, request)
         : await catalogService.createFeature(request);
@@ -82,22 +80,20 @@ export function FeatureDialog({ state, onOpenChange, onSaved }: FeatureDialogPro
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{state?.feature ? "Donanım düzenle" : "Donanım ekle"}</DialogTitle>
-          <DialogDescription>Donanımlar araç sihirbazının 5. adımında onay kutusu olarak listelenir.</DialogDescription>
+          <DialogDescription>
+            Donanımlar araç sihirbazının 5. adımında onay kutusu olarak listelenir. Yeni donanım kategorinin sonuna eklenir;
+            sırasını listede sürükleyerek değiştirin.
+          </DialogDescription>
         </DialogHeader>
         <form id="feature-form" autoComplete="off" noValidate onSubmit={form.handleSubmit(submit)}>
           <FieldGroup>
             <Controller control={form.control} name="category" render={({ field }) => (
               <SelectField id="feature-category" label="Kategori" required options={categories}
-                description="Sitede donanım bu başlık altında görünür." error={errors.category?.message}
+                description="Sitede donanım bu başlık altında görünür. Kategori değişirse yeni kategorinin sonuna geçer." error={errors.category?.message}
                 value={field.value} onChange={field.onChange} />
             )} />
             <InputField id="feature-name" label="Ad" description="Örn. Adaptif hız sabitleyici."
               error={errors.name?.message} autoComplete="off" {...form.register("name")} />
-            <Controller control={form.control} name="sortOrder" render={({ field }) => (
-              <NumberField id="feature-sort" label="Sıra" min={0} max={1000} thousandSeparator={false}
-                description="Küçük sayı listede önce gelir." error={errors.sortOrder?.message}
-                value={field.value} onChange={(v) => field.onChange(v ?? 0)} />
-            )} />
             <Controller control={form.control} name="isActive" render={({ field }) => (
               <SwitchField id="feature-active" label="Aktif" description="Pasif donanım sihirbazda ve sitede görünmez."
                 checked={field.value} onChange={field.onChange} />

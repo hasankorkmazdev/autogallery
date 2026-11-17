@@ -89,7 +89,7 @@ export default function ShowroomPage() {
       <PageHeader
         title="Showroom"
         description="Ana sayfadaki “Ayrıcalıklı Galeri Atmosferi” bölümünün sahneleri."
-        icon={<Images className="w-8 h-8" />}
+        icon={<Images />}
         actions={
           <Button disabled={!scenes || full} title={full ? `En fazla ${MAX_SCENES} sahne eklenebilir.` : undefined}
             onClick={() => setDialog({ scene: null })}>

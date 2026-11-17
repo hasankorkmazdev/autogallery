@@ -201,3 +201,14 @@
 [data-sonner-toast][data-type="loading"]::after {
   display: none;
 }
+
+/* Yatay kayan şeritler (telefonda sihirbaz adımları): kaydırma çubuğu gizli, kesik kenar kaydırılabildiğini gösterir. */
+@layer utilities {
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -1,0 +1,26 @@
+@model List<SocialLinkModel>
+@*
+    Ayarlardaki sosyal medya / mağaza bağlantıları (Ayarlar → Sosyal medya), girildiği sırayla.
+    ViewData["SocialVariant"]: "icons" (alt bilgi, yalnız simge) ya da "list" (iletişim sayfası, simge + ad).
+*@
+@{
+    var list = (ViewData["SocialVariant"] as string) == "list";
+}
+@if (Model is { Count: > 0 })
+{
+    <ul class="social-links @(list ? "social-links-list" : null)">
+        @foreach (var link in Model)
+        {
+            var name = link.Platform.GetDisplayName();
+            <li>
+                <a href="@link.Url" target="_blank" rel="noopener me" aria-label="@(list ? null : name)" title="@(list ? null : name)">
+                    @SocialIcons.Svg(link.Platform)
+                    @if (list)
+                    {
+                        <span>@name</span>
+                    }
+                </a>
+            </li>
+        }
+    </ul>
+}

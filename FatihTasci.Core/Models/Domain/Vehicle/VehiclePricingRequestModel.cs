@@ -20,8 +20,24 @@ public class VehiclePricingRequestModel : IRequestModel
 
     public bool ShowPrice { get; set; } = true;
     public string Description { get; set; }
+
+    /// <summary>
+    /// İlan yetkilisi (isteğe bağlı). Girilirse telefon da girilmelidir.
+    /// </summary>
+    public string ContactName { get; set; }
+
+    /// <summary>
+    /// İlanın iletişim telefonu (isteğe bağlı). Boşsa galeri telefonu kullanılır.
+    /// </summary>
+    public string ContactPhone { get; set; }
+
     public bool IsFeatured { get; set; }
     public int FeaturedOrder { get; set; }
+
+    /// <summary>
+    /// Ana sayfadaki "Fırsat Araçları" şeridinde gösterilir.
+    /// </summary>
+    public bool IsOpportunity { get; set; }
 }
 
 public class VehiclePricingRequestModelValidator : AbstractValidator<VehiclePricingRequestModel>
@@ -40,6 +56,14 @@ public class VehiclePricingRequestModelValidator : AbstractValidator<VehiclePric
         });
         RuleFor(x => x.Description)
             .MaximumLength(10000).WithMessage("Açıklama en fazla 10.000 karakter olabilir.");
+        RuleFor(x => x.ContactName)
+            .MaximumLength(80).WithMessage("Yetkili adı en fazla 80 karakter olabilir.");
+        RuleFor(x => x.ContactPhone)
+            .Matches(@"^[0-9 +()\-]{10,20}$").When(x => !string.IsNullOrWhiteSpace(x.ContactPhone))
+            .WithMessage("Geçerli bir telefon numarası girin.");
+        RuleFor(x => x.ContactPhone)
+            .NotEmpty().When(x => !string.IsNullOrWhiteSpace(x.ContactName))
+            .WithMessage("Yetkili adı girildiyse telefon da girilmelidir.");
         RuleFor(x => x.FeaturedOrder)
             .GreaterThanOrEqualTo(0).WithMessage("Vitrin sırası 0 ya da daha büyük olmalıdır.");
     }

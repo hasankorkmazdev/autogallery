@@ -42,15 +42,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <a href={publicSiteUrl("/")} target="_blank" rel="noreferrer">
-                {settings?.logoUrl ? (
-                  <div className="flex aspect-square size-8 items-center justify-center overflow-hidden rounded-lg bg-white p-0.5">
-                    <img src={settings.logoUrl} alt="" className="max-h-full max-w-full object-contain" />
-                  </div>
-                ) : (
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                    <CarFront className="size-4" />
-                  </div>
-                )}
+                {/* Logo geniş bir kelime logosu (~6:1), kare kutuya sığmaz; burada simge ve firma adı kullanılır. */}
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                  <CarFront className="size-4" />
+                </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold text-sidebar-foreground">{settings?.galleryName || "Oto Galeri"}</span>
                   <span className="truncate text-xs text-muted-foreground flex items-center gap-1">

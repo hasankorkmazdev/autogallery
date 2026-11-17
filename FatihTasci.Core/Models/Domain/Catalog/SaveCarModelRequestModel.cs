@@ -15,9 +15,9 @@ public class SaveCarModelRequestModelValidator : AbstractValidator<SaveCarModelR
     public SaveCarModelRequestModelValidator()
     {
         RuleFor(x => x.SeriesId)
-            .GreaterThan(0).WithMessage("Seri seçin.");
+            .GreaterThan(0).WithMessage("Model seçin.");
         RuleFor(x => x.Name)
-            .NotEmpty().WithMessage("Model adı zorunludur.")
-            .MaximumLength(120).WithMessage("Model adı en fazla 120 karakter olabilir.");
+            .NotEmpty().WithMessage("Paket adı zorunludur.")
+            .MaximumLength(120).WithMessage("Paket adı en fazla 120 karakter olabilir.");
     }
 }

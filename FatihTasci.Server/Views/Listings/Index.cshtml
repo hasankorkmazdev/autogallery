@@ -1,12 +1,28 @@
-@model StockPageModel
+@model ListingsPageModel
 @{
     var options = (Dictionary<string, List<EnumOption>>)ViewBag.FilterOptions;
     var f = Model.Filter;
-    var heading = Model.SeriesName != null ? $"{Model.BrandName} {Model.SeriesName}" : Model.BrandName ?? "Stoktaki Araçlar";
-    var basePath = "/stok" + (f.Brand != null ? $"/{f.Brand}" : "") + (f.Series != null ? $"/{f.Series}" : "");
-    ViewData["Title"] = Model.BrandName == null ? "Stok" : $"{heading} ilanları";
+    var heading = Model.SeriesName != null ? $"{Model.BrandName} {Model.SeriesName}" : Model.BrandName ?? "Tüm İlanlar";
+    var basePath = "/ilanlar" + (f.Brand != null ? $"/{f.Brand}" : "") + (f.Series != null ? $"/{f.Series}" : "");
+    ViewData["Title"] = Model.BrandName == null ? "Tüm İlanlar" : $"{heading} ilanları";
     ViewData["Description"] = $"{heading}: {Model.TotalCount} araç. Boya / değişen, Tramer ve donanım bilgileriyle.";
-    ViewData["Canonical"] = basePath;
+    // Sayfalı listede her sayfa kendini gösterir (1. sayfa yalın adres)
+    ViewData["Canonical"] = Model.Page > 1 ? $"{basePath}?page={Model.Page}" : basePath;
+    // Filtre ve sıralama kombinasyonları dizine girmez; sayfa numarası dışında sorgu varsa noindex, follow.
+    if (Context.Request.Query.Any(x => x.Key != "page" && !string.IsNullOrEmpty(x.Value)))
+    {
+        ViewData["Robots"] = "noindex, follow";
+    }
+    var baseUrl = Urls.Base(Context.Request);
+    var crumbs = new List<(string Name, string Path)> { ("Ana Sayfa", "/"), ("Tüm İlanlar", "/ilanlar") };
+    if (Model.BrandName != null)
+    {
+        crumbs.Add((Model.BrandName, $"/ilanlar/{f.Brand}"));
+    }
+    if (Model.SeriesName != null)
+    {
+        crumbs.Add((Model.SeriesName, $"/ilanlar/{f.Brand}/{f.Series}"));
+    }
 
     string PageUrl(int page)
     {
@@ -21,15 +37,18 @@
 
     string Selected(bool condition) => condition ? "selected" : null;
 }
+@section Head {
+    @StructuredData.Script(StructuredData.Breadcrumb(baseUrl, crumbs.ToArray()))
+}
 
 <section class="section">
     <div class="container">
         <nav class="breadcrumb" aria-label="Konum">
             <a href="/">Ana Sayfa</a> /
-            <a href="/stok">Stok</a>
+            <a href="/ilanlar">Tüm İlanlar</a>
             @if (Model.BrandName != null)
             {
-                <span>/</span> <a href="/stok/@f.Brand">@Model.BrandName</a>
+                <span>/</span> <a href="/ilanlar/@f.Brand">@Model.BrandName</a>
             }
             @if (Model.SeriesName != null)
             {
@@ -43,8 +62,8 @@
 
         <partial name="_BrandStrip" model="Model.Brands" view-data='new ViewDataDictionary(ViewData) { ["ActiveBrand"] = f.Brand }' />
 
-        <div class="stock-layout">
-            <form class="filters" method="get" action="/stok" data-stock-filter>
+        <div class="listings-layout">
+            <form class="filters" method="get" action="/ilanlar" data-listings-filter>
                 <label>Marka
                     <select name="brand">
                         <option value="">Tümü</option>
@@ -56,7 +75,7 @@
                 </label>
                 @if (Model.Series.Count > 0)
                 {
-                    <label>Seri
+                    <label>Model
                         <select name="series">
                             <option value="">Tümü</option>
                             @foreach (var s in Model.Series)
@@ -113,7 +132,7 @@
                 </label>
                 <div class="filter-actions">
                     <button type="submit" class="btn btn-primary">Filtrele</button>
-                    <a class="btn btn-outline" href="/stok">Temizle</a>
+                    <a class="btn btn-outline" href="/ilanlar">Temizle</a>
                 </div>
             </form>
 
@@ -122,12 +141,12 @@
                 {
                     <div class="empty">
                         <p>Bu filtrelere uyan araç bulunamadı.</p>
-                        <a class="btn btn-outline" href="/stok">Filtreleri temizle</a>
+                        <a class="btn btn-outline" href="/ilanlar">Filtreleri temizle</a>
                     </div>
                 }
                 else
                 {
-                    <div class="grid grid-stock">
+                    <div class="grid grid-listings">
                         @foreach (var item in Model.Items)
                         {
                             <partial name="_VehicleCard" model="item" />

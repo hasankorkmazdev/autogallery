@@ -134,7 +134,7 @@ public class CatalogService : DomainService, ICatalogService
 
         var name = request.Name.Trim();
         if (await _seriesRepository.ExistsAsync(x => x.BrandId == request.BrandId && x.Name == name))
-            return Result<SeriesModel>(null, "Bu markada aynı adda bir seri zaten var.", 400);
+            return Result<SeriesModel>(null, "Bu markada aynı adda bir model zaten var.", 400);
 
         var series = new SeriesEntity
         {
@@ -147,21 +147,21 @@ public class CatalogService : DomainService, ICatalogService
         _seriesRepository.Insert(series);
         await _unitOfWork.SaveChangesAsync();
 
-        return Result(ToModel(series), "Seri eklendi.");
+        return Result(ToModel(series), "Model eklendi.");
     }
 
     public async Task<ServiceResultModel<SeriesModel>> UpdateSeriesAsync(int id, SaveSeriesRequestModel request)
     {
         var series = await _seriesRepository.GetFirstOrDefaultAsync(predicate: x => x.Id == id, disableTracking: false);
         if (series == null)
-            return Result<SeriesModel>(null, "Seri bulunamadı.", 404);
+            return Result<SeriesModel>(null, "Model bulunamadı.", 404);
 
         if (series.BrandId != request.BrandId)
-            return Result<SeriesModel>(null, "Serinin markası değiştirilemez.", 400);
+            return Result<SeriesModel>(null, "Modelin markası değiştirilemez.", 400);
 
         var name = request.Name.Trim();
         if (await _seriesRepository.ExistsAsync(x => x.BrandId == series.BrandId && x.Name == name && x.Id != id))
-            return Result<SeriesModel>(null, "Bu markada aynı adda bir seri zaten var.", 400);
+            return Result<SeriesModel>(null, "Bu markada aynı adda bir model zaten var.", 400);
 
         var nameChanged = series.Name != name;
         series.Name = name;
@@ -176,7 +176,7 @@ public class CatalogService : DomainService, ICatalogService
         }
 
         await _unitOfWork.SaveChangesAsync();
-        return Result(ToModel(series), "Seri güncellendi.");
+        return Result(ToModel(series), "Model güncellendi.");
     }
 
     #endregion
@@ -203,11 +203,11 @@ public class CatalogService : DomainService, ICatalogService
     public async Task<ServiceResultModel<CarModelModel>> CreateModelAsync(SaveCarModelRequestModel request)
     {
         if (!await _seriesRepository.ExistsAsync(x => x.Id == request.SeriesId))
-            return Result<CarModelModel>(null, "Seri bulunamadı.", 404);
+            return Result<CarModelModel>(null, "Model bulunamadı.", 404);
 
         var name = request.Name.Trim();
         if (await _modelRepository.ExistsAsync(x => x.SeriesId == request.SeriesId && x.Name == name))
-            return Result<CarModelModel>(null, "Bu seride aynı adda bir model zaten var.", 400);
+            return Result<CarModelModel>(null, "Bu modelde aynı adda bir paket zaten var.", 400);
 
         var model = new CarModelEntity
         {
@@ -219,21 +219,21 @@ public class CatalogService : DomainService, ICatalogService
         _modelRepository.Insert(model);
         await _unitOfWork.SaveChangesAsync();
 
-        return Result(ToModel(model), "Model eklendi.");
+        return Result(ToModel(model), "Paket eklendi.");
     }
 
     public async Task<ServiceResultModel<CarModelModel>> UpdateModelAsync(int id, SaveCarModelRequestModel request)
     {
         var model = await _modelRepository.GetFirstOrDefaultAsync(predicate: x => x.Id == id, disableTracking: false);
         if (model == null)
-            return Result<CarModelModel>(null, "Model bulunamadı.", 404);
+            return Result<CarModelModel>(null, "Paket bulunamadı.", 404);
 
         if (model.SeriesId != request.SeriesId)
-            return Result<CarModelModel>(null, "Modelin serisi değiştirilemez.", 400);
+            return Result<CarModelModel>(null, "Paketin modeli değiştirilemez.", 400);
 
         var name = request.Name.Trim();
         if (await _modelRepository.ExistsAsync(x => x.SeriesId == model.SeriesId && x.Name == name && x.Id != id))
-            return Result<CarModelModel>(null, "Bu seride aynı adda bir model zaten var.", 400);
+            return Result<CarModelModel>(null, "Bu modelde aynı adda bir paket zaten var.", 400);
 
         var nameChanged = model.Name != name;
         model.Name = name;
@@ -248,7 +248,7 @@ public class CatalogService : DomainService, ICatalogService
         }
 
         await _unitOfWork.SaveChangesAsync();
-        return Result(ToModel(model), "Model güncellendi.");
+        return Result(ToModel(model), "Paket güncellendi.");
     }
 
     #endregion

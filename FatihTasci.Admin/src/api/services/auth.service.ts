@@ -5,4 +5,6 @@ export const authService = {
   login: (eMail: string, password: string) =>
     unwrap(api.post<ServiceResult<LoginResponse>>("/auth/login", { eMail, password })),
   me: () => unwrap(api.get<ServiceResult<User>>("/auth/me")),
+  /** HttpOnly çerezi yalnız sunucu silebilir. */
+  logout: () => unwrap(api.post<ServiceResult<null>>("/auth/logout")),
 };

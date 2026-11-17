@@ -22,6 +22,11 @@ interface UserTableProps {
 
 export function UserTable({ items, currentUserId, onEdit, onResetPassword }: UserTableProps) {
   const lookups = useLookupStore((state) => state.lookups);
+  const roleBadge = (user: UserListItem) => (
+    <Badge variant={user.role === UserRole.Admin ? "default" : "secondary"}>{labelOf(lookups?.userRole, user.role)}</Badge>
+  );
+  const activeBadge = (user: UserListItem) =>
+    user.isActive ? <Badge variant="outline">Aktif</Badge> : <Badge variant="secondary">Pasif</Badge>;
 
   const renderBody = () => {
     if (!items || items.length === 0) {
@@ -35,22 +40,23 @@ export function UserTable({ items, currentUserId, onEdit, onResetPassword }: Use
     }
     return items.map((user) => (
       <TableRow key={user.id}>
-        <TableCell>
-          <div className="flex flex-col">
+        <TableCell className="text-left">
+          <div className="flex flex-col gap-0.5">
             <span className="font-medium">
               {user.name} {user.surname}
               {user.id === currentUserId && <span className="ml-2 text-xs text-muted-foreground">(siz)</span>}
             </span>
-            <span className="text-xs text-muted-foreground">{user.eMail}</span>
+            <span className="text-xs text-muted-foreground break-all">{user.eMail}</span>
+            {/* Dar ekranda rol ve durum sütunları gizlenir, burada görünür. */}
+            <span className="flex flex-wrap gap-1 pt-1 sm:hidden">
+              {roleBadge(user)}
+              {activeBadge(user)}
+            </span>
           </div>
         </TableCell>
-        <TableCell>
-          <Badge variant={user.role === UserRole.Admin ? "default" : "secondary"}>{labelOf(lookups?.userRole, user.role)}</Badge>
-        </TableCell>
-        <TableCell>
-          {user.isActive ? <Badge variant="outline">Aktif</Badge> : <Badge variant="secondary">Pasif</Badge>}
-        </TableCell>
-        <TableCell>
+        <TableCell className="max-sm:hidden">{roleBadge(user)}</TableCell>
+        <TableCell className="max-sm:hidden">{activeBadge(user)}</TableCell>
+        <TableCell className="max-lg:hidden">
           <span className="text-xs text-muted-foreground">{formatDateTime(user.lastLoginDate)}</span>
         </TableCell>
         <TableCell className="text-right">
@@ -68,14 +74,14 @@ export function UserTable({ items, currentUserId, onEdit, onResetPassword }: Use
   };
 
   return (
-    <div className="rounded-md border">
+    <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Kullanıcı</TableHead>
-            <TableHead>Rol</TableHead>
-            <TableHead>Durum</TableHead>
-            <TableHead>Son giriş</TableHead>
+            <TableHead className="text-left">Kullanıcı</TableHead>
+            <TableHead className="max-sm:hidden">Rol</TableHead>
+            <TableHead className="max-sm:hidden">Durum</TableHead>
+            <TableHead className="max-lg:hidden">Son giriş</TableHead>
             <TableHead className="text-right">İşlemler</TableHead>
           </TableRow>
         </TableHeader>

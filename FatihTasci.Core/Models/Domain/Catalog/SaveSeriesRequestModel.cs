@@ -18,8 +18,8 @@ public class SaveSeriesRequestModelValidator : AbstractValidator<SaveSeriesReque
         RuleFor(x => x.BrandId)
             .GreaterThan(0).WithMessage("Marka seçin.");
         RuleFor(x => x.Name)
-            .NotEmpty().WithMessage("Seri adı zorunludur.")
-            .MaximumLength(80).WithMessage("Seri adı en fazla 80 karakter olabilir.");
+            .NotEmpty().WithMessage("Model adı zorunludur.")
+            .MaximumLength(80).WithMessage("Model adı en fazla 80 karakter olabilir.");
         RuleFor(x => x.SortOrder)
             .GreaterThanOrEqualTo(0).WithMessage("Sıra 0 ya da daha büyük olmalıdır.");
     }

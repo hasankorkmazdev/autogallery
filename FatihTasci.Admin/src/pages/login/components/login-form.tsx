@@ -17,6 +17,7 @@ import { InputField } from "@/components/ui/input-field";
 import { AppLogo } from "@/components/app-logo";
 import { useAuthStore } from "@/store/auth-store";
 import { authService } from "@/api/services/auth.service";
+import { APP_NAME } from "@/lib/app";
 
 const loginSchema = z.object({
   eMail: z.string().min(1, "E-posta zorunludur.").email("Geçerli bir e-posta adresi girin."),
@@ -41,14 +42,14 @@ export function LoginForm() {
   const { errors } = form.formState;
 
   useEffect(() => {
-    document.title = "Giriş | Yönetim Paneli";
+    document.title = `Giriş | ${APP_NAME}`;
   }, []);
 
   const onSubmit = async (values: LoginValues) => {
     setLoading(true);
     try {
       const result = await authService.login(values.eMail, values.password);
-      login(result.user, result.token, result.expiresAt);
+      login(result.user, result.expiresAt);
       toast.success(`Hoş geldiniz, ${result.user.name}.`);
       navigate("/vehicles");
     } catch (error) {
@@ -63,10 +64,10 @@ export function LoginForm() {
       <CardHeader>
         <CardTitle className="text-center">
           <AppLogo />
-          Yönetim Paneli
+          {APP_NAME}
         </CardTitle>
         <CardDescription className="text-center">
-          Araç ve talepleri yönetmek için giriş yapın.
+          Yönetim paneli. Araç ve talepleri yönetmek için giriş yapın.
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -6,9 +6,15 @@ namespace FatihTasci.Core.Models.Domain.Public;
 
 public class VehicleCardModel
 {
+    public Guid Id { get; set; }
     public string Title { get; set; }
     public string Url { get; set; }
+    /// <summary>
+    /// Kapak fotoğrafı: 1280 (CoverUrl), 480 ve 2400 varyantları (srcset)
+    /// </summary>
     public string CoverUrl { get; set; }
+    public string CoverSmallUrl { get; set; }
+    public string CoverLargeUrl { get; set; }
     public string CoverAlt { get; set; }
     public int? Year { get; set; }
     public int? Kilometer { get; set; }

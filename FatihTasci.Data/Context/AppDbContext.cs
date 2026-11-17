@@ -32,6 +32,7 @@ public class AppDbContext : DbContext
     public DbSet<VehicleMediaEntity> VehicleMedia { get; set; }
     public DbSet<LeadEntity> Leads { get; set; }
     public DbSet<LeadMediaEntity> LeadMedia { get; set; }
+    public DbSet<DeliveryEntity> Deliveries { get; set; }
     public DbSet<SiteSettingEntity> SiteSettings { get; set; }
     public DbSet<SlugRedirectEntity> SlugRedirects { get; set; }
     public DbSet<ShowroomSceneEntity> ShowroomScenes { get; set; }
@@ -115,6 +116,8 @@ public class AppDbContext : DbContext
             e.Property(x => x.Slug).HasMaxLength(200);
             e.Property(x => x.Title).HasMaxLength(150).IsRequired();
             e.Property(x => x.InteriorColor).HasMaxLength(50);
+            e.Property(x => x.ContactName).HasMaxLength(80);
+            e.Property(x => x.ContactPhone).HasMaxLength(20);
             e.Property(x => x.TramerAmount).HasColumnType("decimal(18,2)");
             e.Property(x => x.Price).HasColumnType("decimal(18,2)");
             e.Property(x => x.CampaignPrice).HasColumnType("decimal(18,2)");
@@ -174,6 +177,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.Message).HasMaxLength(2000);
             e.Property(x => x.SellBrand).HasMaxLength(60);
             e.Property(x => x.SellModel).HasMaxLength(120);
+            e.Property(x => x.SellPackage).HasMaxLength(120);
             e.Property(x => x.SellExpectedPrice).HasColumnType("decimal(18,2)");
             e.Property(x => x.InternalNote).HasMaxLength(2000);
             e.Property(x => x.IpAddress).HasMaxLength(45);
@@ -186,6 +190,19 @@ public class AppDbContext : DbContext
             e.Property(x => x.Id).ValueGeneratedNever();
             e.Property(x => x.Path).HasMaxLength(300).IsRequired();
             e.HasOne(x => x.Lead).WithMany(x => x.Media).HasForeignKey(x => x.LeadId);
+            e.HasIndex(x => new { x.LeadId, x.SortOrder });
+        });
+
+        modelBuilder.Entity<DeliveryEntity>(e =>
+        {
+            e.Property(x => x.VehicleTitle).HasMaxLength(80).IsRequired();
+            e.Property(x => x.CustomerName).HasMaxLength(60);
+            e.Property(x => x.City).HasMaxLength(40);
+            e.Property(x => x.DeliveredAt).HasColumnType("date");
+            e.Property(x => x.OriginalPath).HasMaxLength(300);
+            e.Property(x => x.MediumPath).HasMaxLength(300);
+            e.Property(x => x.LargePath).HasMaxLength(300);
+            e.HasIndex(x => new { x.IsActive, x.DeliveredAt });
         });
     }
 
@@ -194,7 +211,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<SiteSettingEntity>(e =>
         {
             e.Property(x => x.Key).HasMaxLength(60).IsRequired();
-            e.Property(x => x.Value).HasMaxLength(1000);
+            e.Property(x => x.Value).HasMaxLength(4000);
             e.HasIndex(x => x.Key).IsUnique();
         });
 

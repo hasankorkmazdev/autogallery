@@ -38,8 +38,35 @@ public class PublicVehicleDetailModel
     public decimal? TramerAmount { get; set; }
     public string ExpertiseReportUrl { get; set; }
     public string Description { get; set; }
+
+    /// <summary>
+    /// İlan yetkilisi ve telefonu. Telefon boşsa galeri telefonu kullanılır.
+    /// </summary>
+    public string ContactName { get; set; }
+    public string ContactPhone { get; set; }
+
+    public DateTime? PublishedAt { get; set; }
+    public DateTime? SoldAt { get; set; }
     public string VideoEmbedUrl { get; set; }
     public string VideoUrl { get; set; }
     public List<GalleryImageModel> Images { get; set; } = new();
+
+    /// <summary>
+    /// Paylaşım görseli (og:image) bilgileri
+    /// </summary>
+    public VehicleShareModel Share { get; set; }
+
+    // schema.org Car için ham değerler (Specs ekranda gösterilecek metinlerdir)
+    public int? Year { get; set; }
+    public int? Kilometer { get; set; }
+    public string FuelName { get; set; }
+    public string TransmissionName { get; set; }
+    public string BodyTypeName { get; set; }
+    public int? EngineCc { get; set; }
+    public int? PowerHp { get; set; }
+    public Drivetrain? Drivetrain { get; set; }
+    public string ExteriorColorName { get; set; }
+    public string InteriorColor { get; set; }
+    public VehicleCondition Condition { get; set; }
     public List<VehicleCardModel> Similar { get; set; } = new();
 }

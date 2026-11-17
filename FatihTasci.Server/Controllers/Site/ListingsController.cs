@@ -6,25 +6,25 @@ namespace FatihTasci.Server.Controllers.Site;
 
 // Vitrin sayfaları (Razor, sunucuda render). Faz 1: sade tasarım.
 
-public class StockController : Controller
+public class ListingsController : Controller
 {
     private readonly IPublicVehicleService _publicVehicleService;
 
-    public StockController(IPublicVehicleService publicVehicleService)
+    public ListingsController(IPublicVehicleService publicVehicleService)
     {
         _publicVehicleService = publicVehicleService;
     }
 
     /// <summary>
-    /// /stok, /stok/{marka}, /stok/{marka}/{seri}. Diğer filtreler query string'de.
+    /// /ilanlar, /ilanlar/{marka}, /ilanlar/{marka}/{seri}. Diğer filtreler query string'de.
     /// Eski marka / seri slug'ı ile gelinirse güncel adrese 301 ile yönlendirilir.
     /// </summary>
-    [HttpGet("stok/{brand?}/{series?}")]
-    public async Task<IActionResult> Index(string brand, string series, [FromQuery] StockFilterModel filter)
+    [HttpGet("ilanlar/{brand?}/{series?}")]
+    public async Task<IActionResult> Index(string brand, string series, [FromQuery] ListingFilterModel filter)
     {
         // Filtre formu marka / seriyi query string ile gönderir; SEO için adres yoluna taşınır.
         if (Request.Query.ContainsKey("brand") || Request.Query.ContainsKey("series"))
-            return RedirectToCanonicalStockPath();
+            return RedirectToCanonicalListingsPath();
 
         var path = await _publicVehicleService.ResolveCatalogPathAsync(brand, series);
         if (!path.Found)
@@ -36,14 +36,14 @@ public class StockController : Controller
         filter.Brand = path.BrandSlug;
         filter.Series = path.SeriesSlug;
         ViewBag.FilterOptions = await _publicVehicleService.GetFilterOptionsAsync();
-        return View(await _publicVehicleService.GetStockAsync(filter, path));
+        return View(await _publicVehicleService.GetListingsAsync(filter, path));
     }
 
-    private IActionResult RedirectToCanonicalStockPath()
+    private IActionResult RedirectToCanonicalListingsPath()
     {
         var brand = Request.Query["brand"].ToString();
         var series = Request.Query["series"].ToString();
-        var target = "/stok";
+        var target = "/ilanlar";
         if (!string.IsNullOrWhiteSpace(brand))
         {
             target += $"/{Uri.EscapeDataString(brand)}";
