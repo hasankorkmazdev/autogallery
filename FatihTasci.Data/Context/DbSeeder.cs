@@ -18,8 +18,14 @@ using Microsoft.Extensions.Logging;
 namespace FatihTasci.Data.Context;
 
 /// <summary>
-/// Başlangıç verisi. Her bölüm yalnızca ilgili tablo boşsa çalışır, bu yüzden her açılışta güvenle çağrılabilir.
-/// Yönetici bilgileri koda yazılmaz, SeedAdmin ayarından okunur.
+/// Başlangıç verisi; her açılışta çalışır ve kayıt bazında "yoksa ekle, varsa dokunma" ilkesiyle ilerler:
+/// - Renk, donanım, showroom sahnesi: eklenen kayıtların adları SiteSettings'te işaretlenir (SeedListAsync). İşaretli
+///   kayıt bir daha eklenmez (panelde silinse ya da adı değişse de); listeye sonradan eklenen kayıt mevcut
+///   veritabanına da bir kez eklenir; aynı adla zaten kayıt varsa dokunulmaz.
+/// - Ayarlar: eksik varsayılan anahtar eklenir, var olana (boş değer dahil) dokunulmaz.
+/// - Katalog: sürüm artınca eksik marka / model / paket slug'a göre eklenir; panelde adı değişen (SlugRedirect) ya da
+///   silinen kayıt yeniden eklenmez, hiçbir şey silinmez.
+/// - Yönetici: hiç kullanıcı yoksa SeedAdmin ayarından bir kez oluşturulur (bilgiler koda yazılmaz).
 /// </summary>
 public static class DbSeeder
 {
@@ -46,6 +52,20 @@ public static class DbSeeder
     /// örnek geri gelmez, listeye yeni eklenen örnek bir sonraki açılışta eklenir.
     /// </summary>
     private const string DemoVehiclesSeededKey = "__DemoVehiclesSeeded";
+
+    /// <summary>
+    /// Kayıt bazında seed işaretleri (SiteSettings): eklenmiş ya da zaten var bulunmuş kayıtların adları, satır satır.
+    /// </summary>
+    private const string SeededColorsKey = "__SeededColors";
+    private const string SeededFeaturesKey = "__SeededFeatures";
+    private const string SeededShowroomScenesKey = "__SeededShowroomScenes";
+
+    /// <summary>
+    /// SiteSettings.Value sütununun uzunluğu (AppDbContext); işaret bundan uzun olamaz.
+    /// </summary>
+    private const int SettingValueMaxLength = 4000;
+
+    private static readonly StringComparer KeyComparer = StringComparer.Create(CultureInfo.GetCultureInfo("tr-TR"), true);
 
     private static readonly string[] DemoVehiclePhotoExtensions = { ".jpg", ".jpeg", ".png", ".webp" };
 
@@ -104,9 +124,6 @@ public static class DbSeeder
 
     private static async Task SeedColorsAsync(AppDbContext context)
     {
-        if (await context.Colors.AnyAsync())
-            return;
-
         var colors = new (string Name, string Hex)[]
         {
             ("Beyaz", "#F5F5F5"), ("Siyah", "#111111"), ("Gri", "#808080"), ("Gümüş Gri", "#B8B8B8"),
@@ -115,15 +132,17 @@ public static class DbSeeder
             ("Yeşil", "#2F5D3A"), ("Turuncu", "#D2691E"), ("Sarı", "#E0B000"), ("Mor", "#5B3A7A")
         };
 
-        context.Colors.AddRange(colors.Select((c, i) => new ColorEntity { Name = c.Name, HexCode = c.Hex, SortOrder = i }));
-        await context.SaveChangesAsync();
+        var existing = await context.Colors.Select(x => new { x.Name, x.SortOrder }).ToListAsync();
+        var nextOrder = existing.Count == 0 ? 0 : existing.Max(x => x.SortOrder) + 1;
+        await SeedListAsync(context, SeededColorsKey, colors.Select(x => x.Name), existing.Select(x => x.Name), name =>
+        {
+            var color = colors.First(x => x.Name == name);
+            context.Colors.Add(new ColorEntity { Name = color.Name, HexCode = color.Hex, SortOrder = nextOrder++ });
+        });
     }
 
     private static async Task SeedFeaturesAsync(AppDbContext context)
     {
-        if (await context.Features.AnyAsync())
-            return;
-
         var groups = new Dictionary<FeatureCategory, string[]>
         {
             [FeatureCategory.Safety] = new[]
@@ -156,17 +175,17 @@ public static class DbSeeder
             }
         };
 
-        foreach (var (category, names) in groups)
+        // Yeni donanım kategorisinin sonuna eklenir (kategori içi sıra panelde değişebilir)
+        var items = groups.SelectMany(g => g.Value.Select(name => (Category: g.Key, Name: name))).ToList();
+        var existing = await context.Features.Select(x => new { x.Name, x.Category, x.SortOrder }).ToListAsync();
+        var nextOrder = existing.GroupBy(x => x.Category).ToDictionary(g => g.Key, g => g.Max(x => x.SortOrder) + 1);
+        await SeedListAsync(context, SeededFeaturesKey, items.Select(x => x.Name), existing.Select(x => x.Name), name =>
         {
-            context.Features.AddRange(names.Select((name, i) => new FeatureEntity
-            {
-                Category = category,
-                Name = name,
-                SortOrder = i
-            }));
-        }
-
-        await context.SaveChangesAsync();
+            var item = items.First(x => x.Name == name);
+            var order = nextOrder.TryGetValue(item.Category, out var value) ? value : 0;
+            nextOrder[item.Category] = order + 1;
+            context.Features.Add(new FeatureEntity { Category = item.Category, Name = item.Name, SortOrder = order });
+        });
     }
 
     /// <summary>
@@ -306,33 +325,37 @@ public static class DbSeeder
         var brands = await context.Brands.IgnoreQueryFilters()
             .Include(x => x.Series).ThenInclude(x => x.Models)
             .ToListAsync();
+        // Panelde adı değişen kaydın eski slug'ı; seed'deki eski ad bu kayda karşılık gelir, yeniden eklenmez.
+        var redirects = await context.SlugRedirects.ToListAsync();
 
         // 1) SpareParts'tan gelen markalar (logolarıyla) ve seriler
         for (var i = 0; i < CatalogSeedData.Brands.Length; i++)
         {
             var (name, slug) = CatalogSeedData.Brands[i];
-            var brand = FindOrAddBrand(context, brands, name, slug);
+            var brand = FindOrAddBrand(context, brands, redirects, name, slug);
             brand.LogoPath ??= $"{BrandLogoFolder}/{slug}.png";
             brand.SortOrder = i + 1;
 
             if (CatalogSeedData.SeriesByBrandSlug.TryGetValue(slug, out var seriesNames))
             {
                 foreach (var seriesName in seriesNames)
-                    FindOrAddSeries(brand, seriesName);
+                    FindOrAddSeries(brand, redirects, seriesName);
             }
         }
 
         // 2) Motor + paket seviyesindeki örnek modeller
         foreach (var (brandName, seriesMap) in catalog)
         {
-            var brand = FindOrAddBrand(context, brands, brandName, SlugHelper.Generate(brandName));
+            var brand = FindOrAddBrand(context, brands, redirects, brandName, SlugHelper.Generate(brandName));
             foreach (var (seriesName, models) in seriesMap)
             {
-                var series = FindOrAddSeries(brand, seriesName);
+                var series = FindOrAddSeries(brand, redirects, seriesName);
                 foreach (var modelName in models)
                 {
                     var modelSlug = SlugHelper.Generate(modelName);
-                    if (series.Models.All(x => x.Slug != modelSlug))
+                    var renamed = series.Id != 0 && redirects.Any(x =>
+                        x.EntityType == SlugEntityType.CarModel && x.ParentId == series.Id && x.OldSlug == modelSlug);
+                    if (!renamed && series.Models.All(x => x.Slug != modelSlug))
                         series.Models.Add(new CarModelEntity { Name = modelName, Slug = modelSlug });
                 }
             }
@@ -354,9 +377,15 @@ public static class DbSeeder
         await context.SaveChangesAsync();
     }
 
-    private static BrandEntity FindOrAddBrand(AppDbContext context, List<BrandEntity> brands, string name, string slug)
+    private static BrandEntity FindOrAddBrand(AppDbContext context, List<BrandEntity> brands, List<SlugRedirectEntity> redirects,
+        string name, string slug)
     {
         var brand = brands.FirstOrDefault(x => x.Slug == slug);
+        if (brand != null)
+            return brand;
+
+        var redirect = redirects.FirstOrDefault(x => x.EntityType == SlugEntityType.Brand && x.OldSlug == slug);
+        brand = redirect == null ? null : brands.FirstOrDefault(x => x.Id == redirect.EntityId);
         if (brand != null)
             return brand;
 
@@ -366,10 +395,16 @@ public static class DbSeeder
         return brand;
     }
 
-    private static SeriesEntity FindOrAddSeries(BrandEntity brand, string name)
+    private static SeriesEntity FindOrAddSeries(BrandEntity brand, List<SlugRedirectEntity> redirects, string name)
     {
         var slug = SlugHelper.Generate(name);
         var series = brand.Series.FirstOrDefault(x => x.Slug == slug);
+        if (series != null)
+            return series;
+
+        var redirect = brand.Id == 0 ? null : redirects.FirstOrDefault(x =>
+            x.EntityType == SlugEntityType.Series && x.ParentId == brand.Id && x.OldSlug == slug);
+        series = redirect == null ? null : brand.Series.FirstOrDefault(x => x.Id == redirect.EntityId);
         if (series != null)
             return series;
 
@@ -378,26 +413,34 @@ public static class DbSeeder
         return series;
     }
 
+    /// <summary>
+    /// Varsayılan ayarlar anahtar bazında: eksik anahtar eklenir, var olana (boş değer dahil) dokunulmaz.
+    /// Ayar satırları panelden silinmez (SiteSettingService yalnız değer yazar), bu yüzden işarete gerek yok.
+    /// </summary>
     private static async Task SeedSettingsAsync(AppDbContext context)
     {
-        if (await context.SiteSettings.AnyAsync(x => x.Key == nameof(SiteSettingsModel.GalleryName)))
+        var defaults = new Dictionary<string, string>
+        {
+            [nameof(SiteSettingsModel.GalleryName)] = "Fatih Taşçı Otomotiv",
+            [nameof(SiteSettingsModel.WorkingHours)] = "Pazartesi - Cumartesi 09:00 - 19:00"
+        };
+
+        var keys = defaults.Keys.ToList();
+        var existing = await context.SiteSettings.Where(x => keys.Contains(x.Key)).Select(x => x.Key).ToListAsync();
+        var missing = defaults.Where(x => !existing.Contains(x.Key)).ToList();
+        if (missing.Count == 0)
             return;
 
-        context.SiteSettings.AddRange(
-            new SiteSettingEntity { Key = nameof(SiteSettingsModel.GalleryName), Value = "Fatih Taşçı Otomotiv" },
-            new SiteSettingEntity { Key = nameof(SiteSettingsModel.WorkingHours), Value = "Pazartesi - Cumartesi 09:00 - 19:00" });
+        context.SiteSettings.AddRange(missing.Select(x => new SiteSettingEntity { Key = x.Key, Value = x.Value }));
         await context.SaveChangesAsync();
     }
 
     /// <summary>
     /// Galeri atmosferi için başlangıç sahneleri (fotoğrafsız). Fotoğraflar panelden yüklenir;
-    /// fotoğrafı olmayan sahne vitrinde görünmez. Silinmiş sahneler de sayılır, böylece yeniden eklenmez.
+    /// fotoğrafı olmayan sahne vitrinde görünmez. Kayıt bazında (başlığa göre); silinen sahne geri gelmez.
     /// </summary>
     private static async Task SeedShowroomScenesAsync(AppDbContext context)
     {
-        if (await context.ShowroomScenes.IgnoreQueryFilters().AnyAsync())
-            return;
-
         var scenes = new (string Tag, string Title)[]
         {
             ("Dış cephe & vitrin", "Showroom ve Vitrin"),
@@ -408,7 +451,49 @@ public static class DbSeeder
             ("Teslimat", "Teslimat Sahnesi")
         };
 
-        context.ShowroomScenes.AddRange(scenes.Select((s, i) => new ShowroomSceneEntity { Tag = s.Tag, Title = s.Title, SortOrder = i }));
+        var existing = await context.ShowroomScenes.IgnoreQueryFilters().Select(x => new { x.Title, x.SortOrder }).ToListAsync();
+        var nextOrder = existing.Count == 0 ? 0 : existing.Max(x => x.SortOrder) + 1;
+        await SeedListAsync(context, SeededShowroomScenesKey, scenes.Select(x => x.Title), existing.Select(x => x.Title), title =>
+        {
+            var scene = scenes.First(x => x.Title == title);
+            context.ShowroomScenes.Add(new ShowroomSceneEntity { Tag = scene.Tag, Title = scene.Title, SortOrder = nextOrder++ });
+        });
+    }
+
+    /// <summary>
+    /// Kayıt bazında seed: işarette (SiteSettings, markerKey) olmayan anahtarlar için, aynı adla kayıt yoksa add
+    /// çağrılır; eklenen ya da zaten var bulunan anahtar işarete yazılır. Böylece işaretli kayıt panelde silinse ya da
+    /// adı değişse de geri gelmez, listeye sonradan eklenen kayıt mevcut veritabanına bir kez eklenir.
+    /// İşaretsiz eski veritabanında ilk çalışmada aynı adla bulunan kayıtlar yalnız işaretlenir.
+    /// </summary>
+    private static async Task SeedListAsync(AppDbContext context, string markerKey, IEnumerable<string> keys,
+        IEnumerable<string> existingNames, Action<string> add)
+    {
+        var marker = await context.SiteSettings.FirstOrDefaultAsync(x => x.Key == markerKey);
+        var seeded = new HashSet<string>((marker?.Value ?? string.Empty).Split('\n', StringSplitOptions.RemoveEmptyEntries), KeyComparer);
+        var existing = new HashSet<string>(existingNames.Where(x => x != null), KeyComparer);
+        var changed = false;
+
+        foreach (var key in keys)
+        {
+            if (!seeded.Add(key))
+                continue;
+            changed = true;
+            if (existing.Add(key))
+                add(key);
+        }
+
+        if (!changed)
+            return;
+
+        var value = string.Join('\n', seeded.OrderBy(x => x, KeyComparer));
+        if (value.Length > SettingValueMaxLength)
+            throw new InvalidOperationException($"Seed işareti {markerKey} {SettingValueMaxLength} karakteri aşıyor.");
+
+        if (marker == null)
+            context.SiteSettings.Add(new SiteSettingEntity { Key = markerKey, Value = value });
+        else
+            marker.Value = value;
         await context.SaveChangesAsync();
     }
 

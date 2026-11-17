@@ -67,7 +67,7 @@ public class Program
         }
 
         ConfigureMiddleware(app);
-        MigrateDatabase(app);
+        SeedDatabase(app);
 
         try
         {
@@ -311,13 +311,24 @@ public class Program
         return path.StartsWithSegments("/api") || path.StartsWithSegments("/media") || path.StartsWithSegments("/panel");
     }
 
-    private static void MigrateDatabase(WebApplication app)
+    /// <summary>
+    /// Şema EF migration ile değil SQL betikleriyle kurulur (Database/, CLAUDE.md "Veritabanı"); açılışta yalnız
+    /// başlangıç verisi eklenir. Şema yoksa seed'den önce ne yapılacağını söyleyen hata verilir.
+    /// </summary>
+    private static void SeedDatabase(WebApplication app)
     {
         using var scope = app.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
-        context.Database.Migrate();
+        var schemaReady = context.Database
+            .SqlQueryRaw<int>("SELECT CASE WHEN OBJECT_ID(N'[Identity].[Users]') IS NULL THEN 0 ELSE 1 END AS [Value]")
+            .AsEnumerable()
+            .Single() == 1;
+        if (!schemaReady)
+            throw new InvalidOperationException(
+                "Veritabanı şeması yok. Boş veritabanında Database/FatihTasci-schema.sql betiğini çalıştırın, sonra uygulamayı yeniden başlatın.");
+
         // Örnek teslimat ve araçlar yalnız geliştirmede (stok / başka galerinin fotoğrafları canlıda gerçek gibi görünür).
         var demoSeedFolder = app.Environment.IsDevelopment()
             ? Path.Combine(app.Environment.ContentRootPath, "Assets", "Seed")
