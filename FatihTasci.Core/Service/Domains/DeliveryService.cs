@@ -1,6 +1,7 @@
 using FatihTasci.Core.Entity.Crm;
 using FatihTasci.Core.Helpers;
 using FatihTasci.Core.Models.Domain;
+using FatihTasci.Core.Models.Domain.Common;
 using FatihTasci.Core.Models.Domain.Delivery;
 using FatihTasci.Core.Models.Domain.Public;
 using FatihTasci.Core.Providers;
@@ -17,6 +18,7 @@ namespace FatihTasci.Core.Service.Domains;
 /// Teslimatlar: müşteriye teslim edilen aracın fotoğrafı, araç adı, isteğe bağlı müşteri adı ve şehir, teslim tarihi.
 /// Sıra teslim tarihidir (en yeni önce). Fotoğraf eklemede zorunludur; yeni fotoğraf eskisinin yerine geçer.
 /// Orijinal özel klasörde, EXIF temizlenmiş 800 / 1600 px WebP varyantları /media/deliveries altında saklanır (filigran yok).
+/// Video isteğe bağlıdır: MP4 olduğu gibi (en çok 100 MB), afiş panelin videodan aldığı ilk kare (1600 px WebP).
 /// </summary>
 public class DeliveryService : DomainService, IDeliveryService
 {
@@ -25,6 +27,7 @@ public class DeliveryService : DomainService, IDeliveryService
 
     private const int MediumWidth = 800;
     private const int LargeWidth = 1600;
+    private const int VideoPosterSize = 1600;
 
     private static readonly string[] AllowedImageExtensions = { ".jpg", ".jpeg", ".png", ".webp" };
 
@@ -75,20 +78,23 @@ public class DeliveryService : DomainService, IDeliveryService
             .MaxAsync(x => (DateTime?)(x.LastUpdateDate ?? x.CreateDate));
     }
 
-    public async Task<ServiceResultModel<List<DeliveryModel>>> CreateAsync(SaveDeliveryRequestModel request, IFormFile photo)
+    public async Task<ServiceResultModel<List<DeliveryModel>>> CreateAsync(SaveDeliveryRequestModel request, IFormFile photo, IFormFile video, IFormFile videoPoster)
     {
-        if (photo == null || photo.Length == 0)
+        if (!HasFile(photo))
             return Result<List<DeliveryModel>>(null, "Teslimat fotoğrafını seçin.", 400);
-        var photoError = ValidatePhoto(photo);
-        if (photoError != null)
-            return Result<List<DeliveryModel>>(null, photoError, 400);
+        var error = ValidatePhoto(photo) ?? await ValidateVideoAsync(video, videoPoster);
+        if (error != null)
+            return Result<List<DeliveryModel>>(null, error, 400);
 
         var delivery = new DeliveryEntity();
         Apply(delivery, request);
 
         var written = await ProcessImageAsync(delivery, photo);
         if (written == null)
-            return Result<List<DeliveryModel>>(null, "Dosya okunamadı, geçerli bir fotoğraf değil.", 400);
+            return Result<List<DeliveryModel>>(null, PhotoUnreadableMessage, 400);
+
+        if (HasFile(video) && !await AddVideoAsync(delivery, video, videoPoster, written))
+            return Result<List<DeliveryModel>>(null, VideoUpload.PosterUnreadableMessage, 400);
 
         _deliveryRepository.Insert(delivery);
         await SaveOrCleanupAsync(written);
@@ -96,32 +102,49 @@ public class DeliveryService : DomainService, IDeliveryService
         return Result(await LoadAsync(), "Teslimat eklendi.");
     }
 
-    public async Task<ServiceResultModel<List<DeliveryModel>>> UpdateAsync(int id, SaveDeliveryRequestModel request, IFormFile photo)
+    public async Task<ServiceResultModel<List<DeliveryModel>>> UpdateAsync(int id, SaveDeliveryRequestModel request, IFormFile photo, IFormFile video, IFormFile videoPoster)
     {
         var delivery = await _deliveryRepository.GetFirstOrDefaultAsync(predicate: x => x.Id == id, disableTracking: false);
         if (delivery == null)
             return Result<List<DeliveryModel>>(null, "Teslimat bulunamadı.", 404);
 
-        var hasPhoto = photo != null && photo.Length > 0;
-        if (hasPhoto)
-        {
-            var photoError = ValidatePhoto(photo);
-            if (photoError != null)
-                return Result<List<DeliveryModel>>(null, photoError, 400);
-        }
+        var hasPhoto = HasFile(photo);
+        var hasVideo = HasFile(video);
+        var error = (hasPhoto ? ValidatePhoto(photo) : null) ?? await ValidateVideoAsync(video, videoPoster);
+        if (error != null)
+            return Result<List<DeliveryModel>>(null, error, 400);
 
         Apply(delivery, request);
 
-        if (!hasPhoto)
+        // Yeni dosyalar yazılır; kayıt kaydedilince değiştirilen ya da kaldırılan eski dosyalar silinir.
+        var written = new List<(bool IsPublic, string Path)>();
+        var oldPaths = new List<(bool IsPublic, string Path)>();
+
+        if (hasPhoto)
         {
-            await _unitOfWork.SaveChangesAsync();
-            return Result(await LoadAsync(), "Teslimat güncellendi.");
+            var oldPhoto = PhotoPaths(delivery);
+            var photoWritten = await ProcessImageAsync(delivery, photo);
+            if (photoWritten == null)
+                return Result<List<DeliveryModel>>(null, PhotoUnreadableMessage, 400);
+            written.AddRange(photoWritten);
+            oldPaths.AddRange(oldPhoto);
         }
 
-        var oldPaths = Paths(delivery);
-        var written = await ProcessImageAsync(delivery, photo);
-        if (written == null)
-            return Result<List<DeliveryModel>>(null, "Dosya okunamadı, geçerli bir fotoğraf değil.", 400);
+        if (hasVideo)
+        {
+            var oldVideo = VideoPaths(delivery);
+            if (!await AddVideoAsync(delivery, video, videoPoster, written))
+                return Result<List<DeliveryModel>>(null, VideoUpload.PosterUnreadableMessage, 400);
+            oldPaths.AddRange(oldVideo);
+        }
+        else if (request.RemoveVideo)
+        {
+            oldPaths.AddRange(VideoPaths(delivery));
+            delivery.VideoPath = null;
+            delivery.VideoPosterPath = null;
+            delivery.VideoWidth = null;
+            delivery.VideoHeight = null;
+        }
 
         await SaveOrCleanupAsync(written);
         Cleanup(oldPaths);
@@ -135,7 +158,7 @@ public class DeliveryService : DomainService, IDeliveryService
         if (delivery == null)
             return Result<List<DeliveryModel>>(null, "Teslimat bulunamadı.", 404);
 
-        var paths = Paths(delivery);
+        var paths = PhotoPaths(delivery).Concat(VideoPaths(delivery)).ToList();
         _deliveryRepository.Delete(delivery);
         await _unitOfWork.SaveChangesAsync();
         Cleanup(paths);
@@ -150,6 +173,18 @@ public class DeliveryService : DomainService, IDeliveryService
         delivery.City = string.IsNullOrWhiteSpace(request.City) ? null : request.City.Trim();
         delivery.DeliveredAt = request.DeliveredAt!.Value.Date;
         delivery.IsActive = request.IsActive;
+    }
+
+    private const string PhotoUnreadableMessage = "Dosya okunamadı, geçerli bir fotoğraf değil.";
+
+    private static bool HasFile(IFormFile file) => file != null && file.Length > 0;
+
+    /// <summary>
+    /// Video gönderilmediyse null (video isteğe bağlıdır), gönderildiyse VideoUpload denetimi.
+    /// </summary>
+    private static async Task<string> ValidateVideoAsync(IFormFile video, IFormFile poster)
+    {
+        return HasFile(video) ? await VideoUpload.ValidateAsync(video, poster) : null;
     }
 
     private static string ValidatePhoto(IFormFile photo)
@@ -172,6 +207,45 @@ public class DeliveryService : DomainService, IDeliveryService
             Cleanup(written);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Videoyu olduğu gibi, afişini (panelin videodan aldığı ilk kare) 1600 px WebP olarak yazar ve yolları entity'ye
+    /// işler; yazdıklarını written'a ekler. Afiş okunamazsa written'daki dosyaları siler ve false döner.
+    /// </summary>
+    private async Task<bool> AddVideoAsync(DeliveryEntity delivery, IFormFile video, IFormFile poster, List<(bool IsPublic, string Path)> written)
+    {
+        using var posterImage = VideoUpload.DecodePoster(poster, VideoPosterSize, out var width, out var height);
+        if (posterImage == null)
+        {
+            _logger.LogWarning("Teslimat videosunun afişi okunamadı: {FileName}", video.FileName);
+            Cleanup(written);
+            return false;
+        }
+
+        var basePath = $"deliveries/video-{Guid.NewGuid():N}";
+        var posterPath = $"{basePath}-poster-{VideoPosterSize}.webp";
+        var videoPath = $"{basePath}.mp4";
+        try
+        {
+            await VideoUpload.SavePosterAsync(_storage, posterImage, posterPath, VideoPosterSize);
+            written.Add((true, posterPath));
+
+            await using (var stream = video.OpenReadStream())
+                await _storage.SavePublicAsync(videoPath, stream);
+            written.Add((true, videoPath));
+        }
+        catch
+        {
+            Cleanup(written);
+            throw;
+        }
+
+        delivery.VideoPath = videoPath;
+        delivery.VideoPosterPath = posterPath;
+        delivery.VideoWidth = width;
+        delivery.VideoHeight = height;
+        return true;
     }
 
     private async Task<List<(bool IsPublic, string Path)>> ProcessImageAsync(DeliveryEntity delivery, IFormFile file)
@@ -260,16 +334,34 @@ public class DeliveryService : DomainService, IDeliveryService
         DeliveredAt = x.DeliveredAt,
         IsActive = x.IsActive,
         MediumUrl = _storage.ToUrl(x.MediumPath),
-        LargeUrl = _storage.ToUrl(x.LargePath)
+        LargeUrl = _storage.ToUrl(x.LargePath),
+        Video = string.IsNullOrEmpty(x.VideoPath)
+            ? null
+            : new VideoFileModel
+            {
+                Url = _storage.ToUrl(x.VideoPath),
+                PosterUrl = _storage.ToUrl(x.VideoPosterPath),
+                Width = x.VideoWidth ?? 0,
+                Height = x.VideoHeight ?? 0
+            }
     };
 
-    private static List<(bool IsPublic, string Path)> Paths(DeliveryEntity delivery)
+    private static List<(bool IsPublic, string Path)> PhotoPaths(DeliveryEntity delivery)
     {
         return new List<(bool IsPublic, string Path)>
         {
             (false, delivery.OriginalPath),
             (true, delivery.MediumPath),
             (true, delivery.LargePath)
+        };
+    }
+
+    private static List<(bool IsPublic, string Path)> VideoPaths(DeliveryEntity delivery)
+    {
+        return new List<(bool IsPublic, string Path)>
+        {
+            (true, delivery.VideoPath),
+            (true, delivery.VideoPosterPath)
         };
     }
 

@@ -1,0 +1,35 @@
+/* Ayarlar → Konum haritası (location-map.tsx): Leaflet kapsayıcısı ve galeri işaretçisi. */
+/* Panelin yazı tipi; boyut Leaflet'in 12 px'i kalır (atıf ve düğmeler). */
+.location-map {
+  font-family: inherit;
+}
+
+/* Haritaya tıklamak nokta seçer; sürüklerken el imleci. */
+.location-map.leaflet-grab {
+  cursor: crosshair;
+}
+.leaflet-dragging .location-map.leaflet-grab,
+.leaflet-dragging .location-map .leaflet-marker-draggable {
+  cursor: grabbing;
+}
+
+/* Damla biçimli işaretçi: galerinin altın rengi (vitrindeki .map-pin ile aynı ton), ucu noktayı gösterir. */
+.location-map-pin span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 28px;
+  height: 28px;
+  border: 2px solid #5c4419;
+  border-radius: 50% 50% 50% 0;
+  background: #c8a96a;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
+  transform: rotate(-45deg);
+}
+.location-map-pin span::after {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  background: #ffffff;
+}

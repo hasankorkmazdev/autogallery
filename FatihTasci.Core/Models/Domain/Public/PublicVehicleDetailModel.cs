@@ -1,4 +1,5 @@
 using FatihTasci.Core.Enums;
+using FatihTasci.Core.Models.Domain.Common;
 
 namespace FatihTasci.Core.Models.Domain.Public;
 
@@ -49,6 +50,11 @@ public class PublicVehicleDetailModel
     public DateTime? SoldAt { get; set; }
     public string VideoEmbedUrl { get; set; }
     public string VideoUrl { get; set; }
+
+    /// <summary>
+    /// Panelden yüklenen video: galeride fotoğrafların yanında oynar. Yoksa null.
+    /// </summary>
+    public VideoFileModel Video { get; set; }
     public List<GalleryImageModel> Images { get; set; } = new();
 
     /// <summary>

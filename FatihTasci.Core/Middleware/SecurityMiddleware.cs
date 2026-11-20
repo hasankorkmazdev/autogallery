@@ -23,9 +23,10 @@ public static class SecurityMiddlewareExtensions
     private const string ApiPolicy = "default-src 'none'; frame-ancestors 'none'";
 
     // Radix / sonner çalışma anında <style> ekler, bu yüzden style-src 'unsafe-inline'. Script'te satır içi yok.
+    // img-src'deki tile.openstreetmap.org, Ayarlar → Konum'daki konum seçme haritasının karolarıdır (location-map.tsx).
     private const string PanelPolicy =
         "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
-        "img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' blob:; " +
+        "img-src 'self' data: blob: https://tile.openstreetmap.org; font-src 'self' data:; connect-src 'self'; media-src 'self' blob:; " +
         "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
 
     // Vitrinde dış kaynak yok (KVKK); yalnız YouTube nocookie gömmesi ve ziyaretçi isteyince yüklenen

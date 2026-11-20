@@ -35,4 +35,9 @@ public class VehicleCardModel
     public decimal? CampaignPrice { get; set; }
     public bool ShowPrice { get; set; }
     public VehicleStatus Status { get; set; }
+
+    /// <summary>
+    /// Panelden video yüklendiyse kartta "Video" rozeti görünür.
+    /// </summary>
+    public bool HasVideo { get; set; }
 }

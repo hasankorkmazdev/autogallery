@@ -11,8 +11,16 @@ const isHttpsUrl = (v: string) => {
     return false;
   }
 };
-const coordinate = (max: number, message: string) =>
-  z.string().trim().refine((v) => v === "" || (/^-?\d+(\.\d+)?$/.test(v) && Math.abs(Number(v)) <= max), { message });
+// Nokta ile ondalık; enlem -90..90, boylam -180..180.
+const isCoordinate = (v: string, max: number) => /^-?\d+(\.\d+)?$/.test(v) && Math.abs(Number(v)) <= max;
+const coordinate = (max: number, message: string) => z.string().trim().refine((v) => v === "" || isCoordinate(v, max), { message });
+
+/** Alanlardaki enlem / boylam geçerliyse [enlem, boylam], değilse null (haritadaki işaretçi için). */
+export const toCoordinates = (latitude: string, longitude: string): [number, number] | null => {
+  const lat = latitude.trim();
+  const lng = longitude.trim();
+  return isCoordinate(lat, 90) && isCoordinate(lng, 180) ? [Number(lat), Number(lng)] : null;
+};
 
 const socialLinkSchema = z.object({
   platform: z.number({ message: "Platform seçin." }).nullable().refine((v) => v !== null, { message: "Platform seçin." }),

@@ -264,6 +264,7 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
             SoldAt = x.SoldAt,
             VideoUrl = x.VideoUrl,
             VideoEmbedUrl = ToYoutubeEmbed(x.VideoUrl),
+            Video = MediaService.ToVideoModel(x, _storage),
             Summary = BuildSummary(x),
             Specs = BuildSpecs(x),
             // Galeri kapak fotoğrafıyla başlar, ardından paneldeki sırayla devam eder.
@@ -422,7 +423,8 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
             Price = r.Price,
             CampaignPrice = r.CampaignPrice,
             ShowPrice = r.ShowPrice,
-            Status = r.Status
+            Status = r.Status,
+            HasVideo = r.HasVideo
         }).ToList();
     }
 
@@ -445,6 +447,7 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
             ShowPrice = x.ShowPrice,
             Status = x.Status,
             Id = x.Id,
+            HasVideo = x.VideoPath != null,
             Cover = x.Media.Where(m => m.IsCover)
                 .Select(m => new CoverRow { SmallPath = m.SmallPath, MediumPath = m.MediumPath, LargePath = m.LargePath })
                 .FirstOrDefault()
@@ -524,6 +527,7 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
         public decimal? CampaignPrice { get; set; }
         public bool ShowPrice { get; set; }
         public VehicleStatus Status { get; set; }
+        public bool HasVideo { get; set; }
         public CoverRow Cover { get; set; }
     }
 

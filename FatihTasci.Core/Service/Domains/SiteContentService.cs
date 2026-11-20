@@ -24,8 +24,6 @@ namespace FatihTasci.Core.Service.Domains;
 /// </summary>
 public class SiteContentService : DomainService, ISiteContentService
 {
-    public const long MaxHeroVideoBytes = 100L * 1024 * 1024;
-    public const long MaxHeroPosterBytes = 10L * 1024 * 1024;
     private const int PosterWidth = 1920;
     private const int PosterSmallWidth = 960;
     private const int PosterQuality = 80;
@@ -124,19 +122,14 @@ public class SiteContentService : DomainService, ISiteContentService
     }
 
     /// <summary>
-    /// Video olduğu gibi saklanır (sunucuda sıkıştırma yok; panel web'e uygun H.264 MP4 ister). Afiş panelde
-    /// tarayıcının videodan aldığı ilk karedir; burada 1920 ve 960 px WebP'ye çevrilir.
+    /// Video olduğu gibi saklanır (sunucuda sıkıştırma yok; panel web'e uygun H.264 MP4 ister, bkz. VideoUpload). Afiş
+    /// panelde tarayıcının videodan aldığı ilk karedir; burada 1920 ve 960 px WebP'ye çevrilir.
     /// </summary>
     public async Task<ServiceResultModel<SiteContentModel>> UploadHeroVideoAsync(IFormFile video, IFormFile poster)
     {
-        if (video == null || video.Length == 0)
-            return Result<SiteContentModel>(null, "Yüklenecek videoyu seçin.", 400);
-        if (video.Length > MaxHeroVideoBytes)
-            return Result<SiteContentModel>(null, $"Video en fazla {MaxHeroVideoBytes / 1024 / 1024} MB olabilir.", 400);
-        if (!string.Equals(Path.GetExtension(video.FileName), ".mp4", StringComparison.OrdinalIgnoreCase) || !await IsMp4Async(video))
-            return Result<SiteContentModel>(null, "Video MP4 (H.264) olmalıdır.", 400);
-        if (poster == null || poster.Length == 0 || poster.Length > MaxHeroPosterBytes)
-            return Result<SiteContentModel>(null, "Videonun ilk karesi alınamadı. Sayfayı yenileyip tekrar deneyin.", 400);
+        var error = await VideoUpload.ValidateAsync(video, poster);
+        if (error != null)
+            return Result<SiteContentModel>(null, error, 400);
 
         SKBitmap posterImage;
         await using (var input = poster.OpenReadStream())
@@ -146,7 +139,7 @@ public class SiteContentService : DomainService, ISiteContentService
         if (posterImage == null)
         {
             _logger.LogWarning("Ana sayfa videosunun afişi okunamadı.");
-            return Result<SiteContentModel>(null, "Videonun ilk karesi okunamadı. Sayfayı yenileyip tekrar deneyin.", 400);
+            return Result<SiteContentModel>(null, VideoUpload.PosterUnreadableMessage, 400);
         }
 
         var basePath = $"site/hero-{Guid.NewGuid():N}";
@@ -219,17 +212,6 @@ public class SiteContentService : DomainService, ISiteContentService
         using var variant = ImageTools.ScaleToWidth(image, width);
         await using var output = ImageTools.ToWebp(variant, PosterQuality);
         await _storage.SavePublicAsync(path, output);
-    }
-
-    /// <summary>
-    /// MP4 (ISO BMFF) dosyası 4. bayttan itibaren "ftyp" kutusuyla başlar.
-    /// </summary>
-    private static async Task<bool> IsMp4Async(IFormFile file)
-    {
-        var header = new byte[12];
-        await using var stream = file.OpenReadStream();
-        var read = await stream.ReadAtLeastAsync(header, header.Length, throwOnEndOfStream: false);
-        return read == header.Length && header[4] == 'f' && header[5] == 't' && header[6] == 'y' && header[7] == 'p';
     }
 
     private void DeleteHeroFiles(string basePath)

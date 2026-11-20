@@ -1,3 +1,4 @@
+using FatihTasci.Core.Helpers;
 using FatihTasci.Core.Models.Domain.Vehicle;
 using FatihTasci.Core.Service.Domains.Abstracts;
 using Microsoft.AspNetCore.Mvc;
@@ -107,6 +108,23 @@ public class VehiclesController : BaseApiController
     public async Task<IActionResult> UpdateVideo(Guid id, [FromBody] VehicleVideoRequestModel request)
     {
         return Ok(await _vehicleService.UpdateVideoAsync(id, request));
+    }
+
+    /// <summary>
+    /// Yüklenen video (MP4, en çok 100 MB) ve panelin videodan aldığı ilk kare (afiş). YouTube bağlantısı ayrıdır (PUT video).
+    /// </summary>
+    [HttpPost("{id:guid}/video-file")]
+    [RequestSizeLimit(VideoUpload.MaxRequestBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = VideoUpload.MaxRequestBytes)]
+    public async Task<IActionResult> UploadVideoFile(Guid id, IFormFile video, IFormFile poster)
+    {
+        return Ok(await _mediaService.UploadVehicleVideoAsync(id, video, poster));
+    }
+
+    [HttpDelete("{id:guid}/video-file")]
+    public async Task<IActionResult> DeleteVideoFile(Guid id)
+    {
+        return Ok(await _mediaService.DeleteVehicleVideoAsync(id));
     }
 
     [HttpPost("{id:guid}/expertise")]

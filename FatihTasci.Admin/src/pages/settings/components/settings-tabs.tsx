@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SwitchField, TextareaField } from "@/components/form/form-fields";
 import { settingsService } from "@/api/services/settings.service";
 import type { SiteSettings } from "@/api/types";
+import { LocationMap } from "./location-map";
 import { LogoCard } from "./logo-card";
 import { SocialLinksCard } from "./social-links-card";
 import { WatermarkCard } from "./watermark-card";
@@ -110,14 +111,21 @@ export function SettingsTabs({ settings, onChanged }: SettingsTabsProps) {
           <Card>
             <CardHeader>
               <CardTitle>Konum</CardTitle>
-              <CardDescription>Ana sayfa ve iletişim sayfasındaki harita ile yol tarifi bağlantıları için. Enlem ve boylam boşsa harita gösterilmez.</CardDescription>
+              <CardDescription>
+                Ana sayfa ve iletişim sayfasındaki harita ile yol tarifi bağlantıları için. Enlem ve boylam boşsa sitedeki harita adresten bulunur, adres de boşsa
+                konum bölümü gösterilmez.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <TextareaField id="address" label="Adres" rows={3} description="Alt bilgide ve iletişim sayfasında görünür." error={errors.address?.message} {...form.register("address")} />
+            {/* Geniş ekranda solda alanlar, sağda harita; dar ekranda harita alanların altında. */}
+            <CardContent className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div className="flex flex-col gap-4">
-                <InputField id="latitude" label="Enlem" description="Google Haritalar'da konuma sağ tıklayınca çıkan ilk sayı, örn. 41.0082." error={errors.latitude?.message} {...form.register("latitude")} />
-                <InputField id="longitude" label="Boylam" description="İkinci sayı, örn. 28.9784." error={errors.longitude?.message} {...form.register("longitude")} />
+                <TextareaField id="address" label="Adres" rows={3} description="Alt bilgide ve iletişim sayfasında görünür." error={errors.address?.message} {...form.register("address")} />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <InputField id="latitude" label="Enlem" inputMode="decimal" description="Haritadan seçin ya da nokta ile yazın, örn. 37.908418." error={errors.latitude?.message} {...form.register("latitude")} />
+                  <InputField id="longitude" label="Boylam" inputMode="decimal" description="Örn. 32.517162." error={errors.longitude?.message} {...form.register("longitude")} />
+                </div>
               </div>
+              <LocationMap form={form} />
             </CardContent>
           </Card>
           {saveButton}

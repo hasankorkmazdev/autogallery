@@ -1,7 +1,6 @@
 using FatihTasci.Core.Helpers;
 using FatihTasci.Core.Models.Domain;
 using FatihTasci.Core.Models.Domain.Content;
-using FatihTasci.Core.Service.Domains;
 using FatihTasci.Core.Service.Domains.Abstracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -38,8 +37,8 @@ public class ContentController : BaseApiController
     /// Ana sayfa videosu (MP4) ve panelin videodan aldığı ilk kare (afiş).
     /// </summary>
     [HttpPost("hero-video")]
-    [RequestSizeLimit(SiteContentService.MaxHeroVideoBytes + SiteContentService.MaxHeroPosterBytes + 1024 * 1024)]
-    [RequestFormLimits(MultipartBodyLengthLimit = SiteContentService.MaxHeroVideoBytes + SiteContentService.MaxHeroPosterBytes + 1024 * 1024)]
+    [RequestSizeLimit(VideoUpload.MaxRequestBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = VideoUpload.MaxRequestBytes)]
     public async Task<IActionResult> UploadHeroVideo(IFormFile video, IFormFile poster)
     {
         return Ok(await _contentService.UploadHeroVideoAsync(video, poster));

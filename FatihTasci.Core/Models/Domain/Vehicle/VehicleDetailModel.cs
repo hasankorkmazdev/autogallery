@@ -1,4 +1,5 @@
 using FatihTasci.Core.Enums;
+using FatihTasci.Core.Models.Domain.Common;
 
 namespace FatihTasci.Core.Models.Domain.Vehicle;
 
@@ -45,7 +46,15 @@ public class VehicleDetailModel
     public List<VehicleBodyPartItemModel> BodyParts { get; set; } = new();
     public List<int> FeatureIds { get; set; } = new();
     public List<VehicleMediaModel> Media { get; set; } = new();
+    /// <summary>
+    /// YouTube bağlantısı
+    /// </summary>
     public string VideoUrl { get; set; }
+
+    /// <summary>
+    /// Yüklenen video; yoksa null
+    /// </summary>
+    public VideoFileModel VideoFile { get; set; }
     public string ExpertiseReportUrl { get; set; }
 
     public decimal? Price { get; set; }

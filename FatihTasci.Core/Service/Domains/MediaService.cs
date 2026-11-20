@@ -1,6 +1,7 @@
 using FatihTasci.Core.Entity.Inventory;
 using FatihTasci.Core.Helpers;
 using FatihTasci.Core.Models.Domain;
+using FatihTasci.Core.Models.Domain.Common;
 using FatihTasci.Core.Models.Domain.Vehicle;
 using FatihTasci.Core.Providers;
 using FatihTasci.Core.RepositoryBase;
@@ -13,7 +14,7 @@ using SkiaSharp;
 namespace FatihTasci.Core.Service.Domains;
 
 /// <summary>
-/// Araç fotoğrafları ve ekspertiz raporu. Her fotoğraf için orijinal dosya özel klasörde saklanır,
+/// Araç fotoğrafları, videosu ve ekspertiz raporu. Her fotoğraf için orijinal dosya özel klasörde saklanır,
 /// EXIF temizlenmiş 480 / 1280 / 2400 px WebP varyantları /media altında sunulur.
 /// Filigran açıksa galeri logosu 1280 ve 2400 varyantlarına basılır; orijinal filigransız kalır.
 /// İlk sürümde işleme yükleme isteği içinde yapılır (yük artarsa Hangfire'a taşınır).
@@ -37,6 +38,10 @@ public class MediaService : DomainService, IMediaService
     private const float WatermarkMarginRatio = 0.025f;
     private const float WatermarkOpacity = 0.55f;
     private static readonly int LargestVariantWidth = Variants.Max(x => x.Width);
+
+    // Video afişi: oynatıcı ve galerinin küçük resmi (en uzun kenar; dikey video da sığar).
+    private const int VideoPosterSize = 1280;
+    private const int VideoPosterSmallSize = 480;
 
     private readonly IUnitOfWork _unitOfWork;
     private readonly IRepository<VehicleEntity> _vehicleRepository;
@@ -211,6 +216,100 @@ public class MediaService : DomainService, IMediaService
         _storage.DeletePublic(oldPath);
 
         return Result(message: "Ekspertiz raporu silindi.");
+    }
+
+    public static VideoFileModel ToVideoModel(VehicleEntity x, IMediaStorage storage)
+    {
+        if (string.IsNullOrEmpty(x.VideoPath))
+            return null;
+
+        return new VideoFileModel
+        {
+            Url = storage.ToUrl(x.VideoPath),
+            PosterUrl = storage.ToUrl(x.VideoPosterPath),
+            PosterSmallUrl = storage.ToUrl(x.VideoPosterSmallPath),
+            Width = x.VideoWidth ?? 0,
+            Height = x.VideoHeight ?? 0
+        };
+    }
+
+    /// <summary>
+    /// Video olduğu gibi saklanır (sunucuda sıkıştırma ve filigran yok). Afiş panelde tarayıcının videodan aldığı ilk
+    /// karedir; 1280 ve 480 px WebP'ye çevrilir. Yeni video eskisinin yerine geçer, eski dosyalar silinir.
+    /// </summary>
+    public async Task<ServiceResultModel<VideoFileModel>> UploadVehicleVideoAsync(Guid vehicleId, IFormFile video, IFormFile poster)
+    {
+        var vehicle = await _vehicleRepository.GetFirstOrDefaultAsync(predicate: x => x.Id == vehicleId, disableTracking: false);
+        if (vehicle == null)
+            return Result<VideoFileModel>(null, "Araç bulunamadı.", 404);
+
+        var error = await VideoUpload.ValidateAsync(video, poster);
+        if (error != null)
+            return Result<VideoFileModel>(null, error, 400);
+
+        using var posterImage = VideoUpload.DecodePoster(poster, VideoPosterSize, out var width, out var height);
+        if (posterImage == null)
+        {
+            _logger.LogWarning("Araç videosunun afişi okunamadı: {VehicleId}", vehicleId);
+            return Result<VideoFileModel>(null, VideoUpload.PosterUnreadableMessage, 400);
+        }
+
+        var oldPaths = VideoPaths(vehicle);
+        var basePath = $"vehicles/{vehicleId:N}/video-{Guid.NewGuid():N}";
+        var written = new List<string>();
+        try
+        {
+            var posterPath = $"{basePath}-poster-{VideoPosterSize}.webp";
+            await VideoUpload.SavePosterAsync(_storage, posterImage, posterPath, VideoPosterSize);
+            written.Add(posterPath);
+
+            var posterSmallPath = $"{basePath}-poster-{VideoPosterSmallSize}.webp";
+            await VideoUpload.SavePosterAsync(_storage, posterImage, posterSmallPath, VideoPosterSmallSize, 75);
+            written.Add(posterSmallPath);
+
+            var videoPath = $"{basePath}.mp4";
+            await using (var stream = video.OpenReadStream())
+                await _storage.SavePublicAsync(videoPath, stream);
+            written.Add(videoPath);
+
+            vehicle.VideoPath = videoPath;
+            vehicle.VideoPosterPath = posterPath;
+            vehicle.VideoPosterSmallPath = posterSmallPath;
+            vehicle.VideoWidth = width;
+            vehicle.VideoHeight = height;
+            await _unitOfWork.SaveChangesAsync();
+        }
+        catch
+        {
+            Cleanup(written, Array.Empty<string>());
+            throw;
+        }
+
+        Cleanup(oldPaths, Array.Empty<string>());
+        return Result(ToVideoModel(vehicle, _storage), "Video yüklendi.");
+    }
+
+    public async Task<ServiceResultModel> DeleteVehicleVideoAsync(Guid vehicleId)
+    {
+        var vehicle = await _vehicleRepository.GetFirstOrDefaultAsync(predicate: x => x.Id == vehicleId, disableTracking: false);
+        if (vehicle == null)
+            return Result("Araç bulunamadı.", 404);
+
+        var oldPaths = VideoPaths(vehicle);
+        vehicle.VideoPath = null;
+        vehicle.VideoPosterPath = null;
+        vehicle.VideoPosterSmallPath = null;
+        vehicle.VideoWidth = null;
+        vehicle.VideoHeight = null;
+        await _unitOfWork.SaveChangesAsync();
+        Cleanup(oldPaths, Array.Empty<string>());
+
+        return Result(message: "Video silindi.");
+    }
+
+    private static List<string> VideoPaths(VehicleEntity vehicle)
+    {
+        return new List<string> { vehicle.VideoPath, vehicle.VideoPosterPath, vehicle.VideoPosterSmallPath };
     }
 
     public async Task RegenerateAllVariantsAsync(Action<int> onStart, Action<bool> onItem, CancellationToken cancellationToken)

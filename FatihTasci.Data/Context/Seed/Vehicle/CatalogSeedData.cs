@@ -389,7 +389,7 @@ internal static class CatalogSeedData
             (562, "Golf", [(118, "Golf 1.5 eTSI R-Line"), (119, "Golf GTI")]),
             (563, "ID. Buzz", []), (564, "ID.3", []), (565, "ID.4", []), (566, "ID.5", []), (567, "ID.7", []),
             (568, "Jetta", []), (569, "Multivan", []),
-            (570, "Passat", [(120, "Passat 1.5 eTSI Business")]),
+            (570, "Passat", [(120, "Passat 1.5 eTSI Business"), (133, "Passat 1.6 TDI BlueMotion Impression")]),
             (571, "Phaeton", []), (572, "Polo", []), (573, "Scirocco", []), (574, "Sharan", []), (575, "T-Cross", []),
             (576, "T-Roc", []), (577, "Taigo", []),
             (578, "Tiguan", [(121, "Tiguan 1.5 eTSI R-Line")]),
@@ -405,7 +405,7 @@ internal static class CatalogSeedData
             (592, "S90", [(124, "S90 B5 Ultimate")]),
             (593, "V40", []), (594, "V50", []), (595, "V60", []), (596, "V70", []), (597, "V90", []),
             (598, "XC40", [(125, "XC40 B4 Plus")]),
-            (599, "XC60", [(126, "XC60 B5 AWD Ultimate"), (127, "XC60 T8 Recharge")]),
+            (599, "XC60", [(126, "XC60 B5 AWD Ultimate"), (127, "XC60 T8 Recharge"), (132, "XC60 B4 AWD Inscription")]),
             (600, "XC90", [(128, "XC90 B5 AWD Ultimate")])
         ]),
         (102, "XEV", "xev", []),

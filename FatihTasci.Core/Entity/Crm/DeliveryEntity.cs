@@ -4,7 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace FatihTasci.Core.Entity.Crm;
 
 /// <summary>
-/// Müşteriye teslim edilen aracın fotoğrafı (vitrinde ana sayfa ve /teslimatlar). Her teslimatın tek fotoğrafı olur.
+/// Müşteriye teslim edilen aracın fotoğrafı (vitrinde ana sayfa ve /teslimatlar). Her teslimatın tek fotoğrafı ve
+/// isteğe bağlı tek videosu olur.
 /// Orijinal özel klasörde, EXIF'siz 800 / 1600 px WebP varyantları /media/deliveries altında saklanır.
 /// IsActive kapalıysa vitrinde görünmez.
 /// </summary>
@@ -31,4 +32,14 @@ public class DeliveryEntity : BaseAuditableEntity<int>
     public string OriginalPath { get; set; }
     public string MediumPath { get; set; }
     public string LargePath { get; set; }
+
+    /// <summary>
+    /// İsteğe bağlı teslimat videosu (MP4 olduğu gibi, en çok 100 MB; sunucuda sıkıştırma yok). Kartta fotoğraf
+    /// görünür, tam ekranda video oynar. Afiş videonun ilk karesidir (1600 px WebP); VideoWidth / VideoHeight afişin
+    /// boyutudur (oranı videoyla aynı). Yollar /media/deliveries altındadır.
+    /// </summary>
+    public string VideoPath { get; set; }
+    public string VideoPosterPath { get; set; }
+    public int? VideoWidth { get; set; }
+    public int? VideoHeight { get; set; }
 }

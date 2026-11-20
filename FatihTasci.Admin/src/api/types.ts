@@ -249,7 +249,10 @@ export interface VehicleDetail {
   bodyParts: BodyPartItem[];
   featureIds: number[];
   media: VehicleMedia[];
+  /** YouTube bağlantısı */
   videoUrl: string | null;
+  /** Yüklenen video (MP4); yoksa null */
+  videoFile: VideoFile | null;
   expertiseReportUrl: string | null;
   price: number | null;
   campaignPrice: number | null;
@@ -345,6 +348,8 @@ export interface Delivery {
   mediumUrl: string | null;
   /** 1600 px WebP (tam ekran) */
   largeUrl: string | null;
+  /** İsteğe bağlı video; sitede tam ekranda fotoğrafın yerine oynar */
+  video: VideoFile | null;
 }
 
 export interface SaveDelivery {
@@ -354,6 +359,29 @@ export interface SaveDelivery {
   /** yyyy-MM-dd */
   deliveredAt: string;
   isActive: boolean;
+  /** Düzenlemede mevcut videoyu kaldırır (yeni video gönderilmediyse) */
+  removeVideo: boolean;
+}
+
+/** Yeni seçilen video ve tarayıcının ondan aldığı ilk kare (afiş). */
+export interface VideoUploadFiles {
+  video: File;
+  poster: Blob;
+}
+
+// --- Video (araç, teslimat)
+
+/**
+ * Panelden yüklenen video: MP4 olduğu gibi, afiş videonun ilk karesi (WebP). width / height afişin boyutudur
+ * (oranı videoyla aynı).
+ */
+export interface VideoFile {
+  url: string;
+  posterUrl: string;
+  /** Küçük afiş (araç galerisinin küçük resmi); teslimatta null */
+  posterSmallUrl: string | null;
+  width: number;
+  height: number;
 }
 
 // --- Ayarlar

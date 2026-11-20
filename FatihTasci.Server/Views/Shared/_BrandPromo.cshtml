@@ -1,0 +1,19 @@
+@model FilterOptionModel
+@*
+    Marka tanıtım kartı (ana sayfa, Markalar'ın yanında; şimdilik yalnız Mercedes-Benz): açık gri kart, solda üç satır
+    başlık, sol altta marka amblemi + ilan sayısı, sağda kartın kenarından kesilen araç. Model, ilanda aracı olan markadır
+    (HomePageModel.Brands); markanın aracı yoksa kart gösterilmez. Görseller wwwroot/images/promo: {slug}.webp (saydam,
+    sola bakan ve sağ kenardan kesik araç) ve {slug}-emblem.png (kare amblem).
+*@
+<a class="brand-promo" href="/ilanlar/@Model.Value">
+    <span class="brand-promo-title">
+        <span>@Model.Label</span>
+        <span>Seçkin Modeller</span>
+        <span>Sizi Bekliyor</span>
+    </span>
+    <span class="brand-promo-foot">
+        <img src="/images/promo/@(Model.Value)-emblem.png" alt="" width="28" height="28" loading="lazy" />
+        <span><span aria-hidden="true">@Model.Label<br /></span>@Model.Count ilan</span>
+    </span>
+    <img class="brand-promo-car" src="/images/promo/@(Model.Value).webp" alt="" width="900" height="526" loading="lazy" />
+</a>

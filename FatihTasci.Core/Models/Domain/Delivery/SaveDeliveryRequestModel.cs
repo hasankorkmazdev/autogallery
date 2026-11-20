@@ -4,7 +4,8 @@ using FluentValidation;
 namespace FatihTasci.Core.Models.Domain.Delivery;
 
 /// <summary>
-/// Teslimat ekleme / düzenleme (multipart: alanlar + "photo"). Fotoğraf eklemede zorunlu, düzenlemede yalnız değişecekse gönderilir.
+/// Teslimat ekleme / düzenleme (multipart: alanlar + "photo", isteğe bağlı "video" + "videoPoster"). Fotoğraf eklemede
+/// zorunlu, düzenlemede yalnız değişecekse gönderilir; video da yalnız eklenecek / değişecekse gönderilir.
 /// </summary>
 public class SaveDeliveryRequestModel : IRequestModel
 {
@@ -13,6 +14,11 @@ public class SaveDeliveryRequestModel : IRequestModel
     public string City { get; set; }
     public DateTime? DeliveredAt { get; set; }
     public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// Düzenlemede mevcut videoyu kaldırır (yeni video gönderilmediyse).
+    /// </summary>
+    public bool RemoveVideo { get; set; }
 }
 
 public class SaveDeliveryRequestModelValidator : AbstractValidator<SaveDeliveryRequestModel>

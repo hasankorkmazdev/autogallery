@@ -22,12 +22,21 @@
 
 @if (Model.Brands.Count > 0)
 {
+    var promo = Model.Brands.FirstOrDefault(b => b.Value == "mercedes-benz");
     <section class="section" aria-labelledby="brands-title">
         <div class="container">
-            <div class="section-head">
-                <h2 id="brands-title" class="section-title">Markalar</h2>
+            <div class="brands-layout">
+                <div class="brands-main">
+                    <div class="section-head">
+                        <h2 id="brands-title" class="section-title">Markalar</h2>
+                    </div>
+                    <partial name="_BrandStrip" model="Model.Brands" view-data='new ViewDataDictionary(ViewData) { ["BrandVariant"] = "tiles" }' />
+                </div>
+                @if (promo != null)
+                {
+                    <partial name="_BrandPromo" model="promo" />
+                }
             </div>
-            <partial name="_BrandStrip" model="Model.Brands" view-data='new ViewDataDictionary(ViewData) { ["BrandVariant"] = "tiles" }' />
         </div>
     </section>
 }

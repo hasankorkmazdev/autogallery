@@ -18,11 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { contentService } from "@/api/services/content.service";
 import type { HeroVideo } from "@/api/types";
-import { capturePoster } from "./capture-poster";
-
-// Sunucudaki SiteContentService.MaxHeroVideoBytes ile aynı.
-const MAX_VIDEO_MB = 100;
-const MAX_VIDEO_BYTES = MAX_VIDEO_MB * 1024 * 1024;
+import { capturePoster, checkVideoFile, MAX_VIDEO_MB, VIDEO_ACCEPT } from "@/lib/video";
 
 interface HeroVideoCardProps {
   video: HeroVideo;
@@ -41,8 +37,9 @@ export function HeroVideoCard({ video, onChanged }: HeroVideoCardProps) {
     const file = fileList?.[0];
     if (inputRef.current) inputRef.current.value = "";
     if (!file) return;
-    if (!file.name.toLowerCase().endsWith(".mp4") || file.size > MAX_VIDEO_BYTES) {
-      toast.error(`${file.name}: yalnızca ${MAX_VIDEO_MB} MB'a kadar MP4 yüklenebilir.`);
+    const invalid = checkVideoFile(file);
+    if (invalid) {
+      toast.error(invalid);
       return;
     }
 
@@ -138,7 +135,7 @@ export function HeroVideoCard({ video, onChanged }: HeroVideoCardProps) {
         <Input
           ref={inputRef}
           type="file"
-          accept="video/mp4,.mp4"
+          accept={VIDEO_ACCEPT}
           className="hidden"
           aria-label="Ana sayfa videosu"
           onChange={(e) => upload(e.target.files)}

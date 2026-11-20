@@ -395,7 +395,7 @@ public class VehicleService : DomainService, IVehicleService
 
     /// <summary>
     /// Benzer ilandan kopyala: katalog, teknik bilgiler (km ve renkler hariç), durum ve donanım kopyalanır.
-    /// Danışman da kopyalanır. Hasar, fotoğraf ve fiyat yeni araç için ayrıca girilir.
+    /// Danışman da kopyalanır. Hasar, fotoğraf, video ve fiyat yeni araç için ayrıca girilir.
     /// </summary>
     public async Task<ServiceResultModel<VehicleDetailModel>> CopyAsync(Guid id)
     {
@@ -607,6 +607,7 @@ public class VehicleService : DomainService, IVehicleService
             FeatureIds = x.Features.Select(f => f.FeatureId).ToList(),
             Media = x.Media.OrderBy(m => m.SortOrder).Select(m => MediaService.ToModel(m, _storage)).ToList(),
             VideoUrl = x.VideoUrl,
+            VideoFile = MediaService.ToVideoModel(x, _storage),
             ExpertiseReportUrl = _storage.ToUrl(x.ExpertiseReportPath),
             Price = x.Price,
             CampaignPrice = x.CampaignPrice,

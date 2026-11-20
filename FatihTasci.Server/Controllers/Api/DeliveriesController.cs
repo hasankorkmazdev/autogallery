@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace FatihTasci.Server.Controllers.Api;
 
 /// <summary>
-/// Teslimatlar (Personel ve Yönetici). Ekleme ve düzenleme multipart'tır: alanlar + "photo". Her işlem güncel listeyi döner.
+/// Teslimatlar (Personel ve Yönetici). Ekleme ve düzenleme multipart'tır: alanlar + "photo", isteğe bağlı "video" + "videoPoster" (videonun ilk karesi). Her işlem güncel listeyi döner.
 /// </summary>
 [Route("api/deliveries")]
 public class DeliveriesController : BaseApiController
@@ -26,17 +26,17 @@ public class DeliveriesController : BaseApiController
     [HttpPost]
     [RequestSizeLimit(Program.MaxUploadBytes)]
     [RequestFormLimits(MultipartBodyLengthLimit = Program.MaxUploadBytes)]
-    public async Task<IActionResult> Create([FromForm] SaveDeliveryRequestModel request, IFormFile photo)
+    public async Task<IActionResult> Create([FromForm] SaveDeliveryRequestModel request, IFormFile photo, IFormFile video, IFormFile videoPoster)
     {
-        return Ok(await _deliveryService.CreateAsync(request, photo));
+        return Ok(await _deliveryService.CreateAsync(request, photo, video, videoPoster));
     }
 
     [HttpPut("{id:int}")]
     [RequestSizeLimit(Program.MaxUploadBytes)]
     [RequestFormLimits(MultipartBodyLengthLimit = Program.MaxUploadBytes)]
-    public async Task<IActionResult> Update(int id, [FromForm] SaveDeliveryRequestModel request, IFormFile photo)
+    public async Task<IActionResult> Update(int id, [FromForm] SaveDeliveryRequestModel request, IFormFile photo, IFormFile video, IFormFile videoPoster)
     {
-        return Ok(await _deliveryService.UpdateAsync(id, request, photo));
+        return Ok(await _deliveryService.UpdateAsync(id, request, photo, video, videoPoster));
     }
 
     [HttpDelete("{id:int}")]

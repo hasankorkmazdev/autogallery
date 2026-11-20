@@ -1,4 +1,20 @@
+// Panelden yüklenen videolar (ana sayfa girişi, araç, teslimat). Sunucu videoyu işlemez: MP4 olduğu gibi saklanır,
+// afiş tarayıcının videodan aldığı ilk karedir.
+
+/** Sunucudaki VideoUpload.MaxVideoBytes ile aynı. */
+export const MAX_VIDEO_MB = 100;
+export const MAX_VIDEO_BYTES = MAX_VIDEO_MB * 1024 * 1024;
+export const VIDEO_ACCEPT = "video/mp4,.mp4";
+
 const MAX_POSTER_WIDTH = 1920;
+
+/** Dosya yüklenebilir bir MP4 değilse kullanıcıya gösterilecek metin, uygunsa null. */
+export function checkVideoFile(file: File): string | null {
+  if (!file.name.toLowerCase().endsWith(".mp4") || file.size > MAX_VIDEO_BYTES) {
+    return `${file.name}: yalnızca ${MAX_VIDEO_MB} MB'a kadar MP4 yüklenebilir.`;
+  }
+  return null;
+}
 
 export interface CapturedPoster {
   poster: Blob;

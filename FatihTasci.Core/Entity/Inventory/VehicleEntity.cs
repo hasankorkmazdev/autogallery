@@ -59,8 +59,22 @@ public class VehicleEntity : BaseAuditableEntity<Guid>
     public decimal? TramerAmount { get; set; }
 
     // --- Adım 6: Medya
+    /// <summary>
+    /// İsteğe bağlı YouTube bağlantısı (araç sayfasına gömülür). Yüklenen video aşağıdaki Video* alanlarındadır.
+    /// </summary>
     public string VideoUrl { get; set; }
     public string ExpertiseReportPath { get; set; }
+
+    /// <summary>
+    /// Panelden yüklenen video (MP4 olduğu gibi, en çok 100 MB; sunucuda sıkıştırma ve filigran yok). Vitrinde
+    /// galeride fotoğrafların yanında oynatılır. Afiş videonun ilk karesidir: 1280 px (oynatıcı) ve 480 px (küçük resim)
+    /// WebP. VideoWidth / VideoHeight afişin boyutudur (oranı videoyla aynı). Yollar Storage kökünce görelidir (/media).
+    /// </summary>
+    public string VideoPath { get; set; }
+    public string VideoPosterPath { get; set; }
+    public string VideoPosterSmallPath { get; set; }
+    public int? VideoWidth { get; set; }
+    public int? VideoHeight { get; set; }
 
     // --- Adım 7: Fiyat ve yayın
     public decimal? Price { get; set; }

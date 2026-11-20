@@ -3,6 +3,7 @@ using FatihTasci.Core.Helpers;
 using FatihTasci.Core.Models.Domain;
 using FatihTasci.Core.Models.Domain.Account;
 using FatihTasci.Core.Models.Domain.Catalog;
+using FatihTasci.Core.Models.Domain.Common;
 using FatihTasci.Core.Models.Domain.Content;
 using FatihTasci.Core.Models.Domain.Delivery;
 using FatihTasci.Core.Models.Domain.Lead;
@@ -91,6 +92,12 @@ public interface IMediaService : IDomainService
     Task<ServiceResultModel> DeleteExpertiseReportAsync(Guid vehicleId);
 
     /// <summary>
+    /// Aracın videosu (MP4, en çok 100 MB) ve panelin videodan aldığı ilk kare (afiş); eskisinin yerine geçer.
+    /// </summary>
+    Task<ServiceResultModel<VideoFileModel>> UploadVehicleVideoAsync(Guid vehicleId, IFormFile video, IFormFile poster);
+    Task<ServiceResultModel> DeleteVehicleVideoAsync(Guid vehicleId);
+
+    /// <summary>
     /// Tüm fotoğrafların WebP varyantlarını güncel filigran ayarıyla orijinallerden yeniden üretir.
     /// onStart toplam sayıyı, onItem her fotoğrafın sonucunu (başarılı mı) bildirir.
     /// </summary>
@@ -136,8 +143,12 @@ public interface IDeliveryService : IDomainService
     /// </summary>
     Task<DateTime?> GetLastPublicChangeAsync();
 
-    Task<ServiceResultModel<List<DeliveryModel>>> CreateAsync(SaveDeliveryRequestModel request, IFormFile photo);
-    Task<ServiceResultModel<List<DeliveryModel>>> UpdateAsync(int id, SaveDeliveryRequestModel request, IFormFile photo);
+    /// <summary>
+    /// Ekleme ve düzenleme: fotoğraf eklemede zorunlu; video isteğe bağlı (MP4 + panelin videodan aldığı ilk kare).
+    /// Gönderilen fotoğraf / video eskisinin yerine geçer; RemoveVideo videoyu kaldırır.
+    /// </summary>
+    Task<ServiceResultModel<List<DeliveryModel>>> CreateAsync(SaveDeliveryRequestModel request, IFormFile photo, IFormFile video, IFormFile videoPoster);
+    Task<ServiceResultModel<List<DeliveryModel>>> UpdateAsync(int id, SaveDeliveryRequestModel request, IFormFile photo, IFormFile video, IFormFile videoPoster);
     Task<ServiceResultModel<List<DeliveryModel>>> DeleteAsync(int id);
 }
 

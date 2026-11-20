@@ -100,6 +100,10 @@ CREATE TABLE [Crm].[Deliveries] (
     [OriginalPath] nvarchar(300) NULL,
     [MediumPath] nvarchar(300) NULL,
     [LargePath] nvarchar(300) NULL,
+    [VideoPath] nvarchar(300) NULL,
+    [VideoPosterPath] nvarchar(300) NULL,
+    [VideoWidth] int NULL,
+    [VideoHeight] int NULL,
     CONSTRAINT [PK_Deliveries] PRIMARY KEY ([Id])
 );
 GO
@@ -260,6 +264,11 @@ CREATE TABLE [Inventory].[Vehicles] (
     [TramerAmount] decimal(18,2) NULL,
     [VideoUrl] nvarchar(300) NULL,
     [ExpertiseReportPath] nvarchar(300) NULL,
+    [VideoPath] nvarchar(300) NULL,
+    [VideoPosterPath] nvarchar(300) NULL,
+    [VideoPosterSmallPath] nvarchar(300) NULL,
+    [VideoWidth] int NULL,
+    [VideoHeight] int NULL,
     [Price] decimal(18,2) NULL,
     [CampaignPrice] decimal(18,2) NULL,
     [ShowPrice] bit NOT NULL,

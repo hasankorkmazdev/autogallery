@@ -98,7 +98,10 @@ public enum BodyType
     Mpv = 10,
 
     [Display(Name = "Pick-up")]
-    Pickup = 11
+    Pickup = 11,
+
+    [Display(Name = "Panel Van")]
+    PanelVan = 12
 }
 
 public enum Drivetrain

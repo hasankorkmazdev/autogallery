@@ -132,6 +132,9 @@ public class AppDbContext : DbContext
             e.Property(x => x.CampaignPrice).HasColumnType("decimal(18,2)");
             e.Property(x => x.VideoUrl).HasMaxLength(300);
             e.Property(x => x.ExpertiseReportPath).HasMaxLength(300);
+            e.Property(x => x.VideoPath).HasMaxLength(300);
+            e.Property(x => x.VideoPosterPath).HasMaxLength(300);
+            e.Property(x => x.VideoPosterSmallPath).HasMaxLength(300);
             e.Property(x => x.WarrantyEndDate).HasColumnType("date");
             e.HasIndex(x => new { x.Status, x.PublishedAt });
             e.HasIndex(x => x.CarModelId);
@@ -214,6 +217,8 @@ public class AppDbContext : DbContext
             e.Property(x => x.OriginalPath).HasMaxLength(300);
             e.Property(x => x.MediumPath).HasMaxLength(300);
             e.Property(x => x.LargePath).HasMaxLength(300);
+            e.Property(x => x.VideoPath).HasMaxLength(300);
+            e.Property(x => x.VideoPosterPath).HasMaxLength(300);
             e.HasIndex(x => new { x.IsActive, x.DeliveredAt });
         });
     }

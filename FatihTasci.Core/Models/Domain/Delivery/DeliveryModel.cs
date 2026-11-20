@@ -1,3 +1,5 @@
+using FatihTasci.Core.Models.Domain.Common;
+
 namespace FatihTasci.Core.Models.Domain.Delivery;
 
 public class DeliveryModel
@@ -18,4 +20,9 @@ public class DeliveryModel
     /// 1600 px WebP (tam ekran)
     /// </summary>
     public string LargeUrl { get; set; }
+
+    /// <summary>
+    /// İsteğe bağlı video; varsa tam ekranda fotoğrafın yerine oynar. Yoksa null.
+    /// </summary>
+    public VideoFileModel Video { get; set; }
 }
