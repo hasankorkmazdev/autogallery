@@ -13,6 +13,7 @@ using FatihTasci.Server.Helpers;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -45,8 +46,18 @@ public class Program
         CultureInfo.DefaultThreadCurrentUICulture = turkish;
         ValidatorOptions.Global.LanguageManager.Culture = turkish;
 
+        // Yükleme sınırı Kestrel'de ve IIS'te (paylaşımlı barındırma, in-process) aynı; IIS'in kendi istek filtresi
+        // sınırı web.config'de (maxAllowedContentLength).
         builder.Services.Configure<FormOptions>(options => options.MultipartBodyLengthLimit = MaxUploadBytes);
         builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = MaxUploadBytes);
+        builder.Services.Configure<IISServerOptions>(options => options.MaxRequestBodySize = MaxUploadBytes);
+
+        // Antiforgery (vitrin formları) anahtarları kalıcı: paylaşımlı barındırmada uygulama havuzu sık yeniden başlar,
+        // anahtarlar bellekte kalırsa açık sayfadaki form gönderilemez. Sunulmayan private klasörde durur.
+        var storageRoot = LocalMediaStorage.ResolveRoot(builder.Configuration, builder.Environment.ContentRootPath);
+        builder.Services.AddDataProtection()
+            .SetApplicationName("FatihTasci")
+            .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(storageRoot, "private", "keys")));
 
         ConfigureServices(builder.Services, builder.Configuration);
 
@@ -66,8 +77,19 @@ public class Program
             throw;
         }
 
-        ConfigureMiddleware(app);
-        SeedDatabase(app);
+        // Açılış hatası (veritabanına bağlanılamaması, şema yok, klasöre yazma izni yok) dosyaya da yazılsın: IIS'te
+        // yalnız "500.30 app failed to start" görünür, ayrıntı Storage/private/logs/errors'tadır.
+        try
+        {
+            ConfigureMiddleware(app);
+            SeedDatabase(app);
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "Server açılışta durdu");
+            Log.CloseAndFlush();
+            throw;
+        }
 
         try
         {
@@ -329,16 +351,15 @@ public class Program
             throw new InvalidOperationException(
                 "Veritabanı şeması yok. Boş veritabanında Database/FatihTasci-schema.sql betiğini çalıştırın, sonra uygulamayı yeniden başlatın.");
 
-        // Örnek teslimat ve araçlar yalnız geliştirmede (stok / başka galerinin fotoğrafları canlıda gerçek gibi görünür).
-        var demoSeedFolder = app.Environment.IsDevelopment()
-            ? Path.Combine(app.Environment.ContentRootPath, "Assets", "Seed")
-            : null;
+        // Seed yalnız Seed:Enabled açıkken çalışır ve yalnız eksik kayıtları ekler, var olana dokunmaz. Örnek teslimatlar
+        // DemoData:Enabled ile (geliştirmede açık; canlıda yalnız geçici olarak: stok fotoğraflar gerçek teslimat gibi görünür).
+        var seedFolder = Path.Combine(app.Environment.ContentRootPath, "Assets", "Seed");
         DbSeeder.SeedAsync(
                 context,
                 app.Configuration,
-                scope.ServiceProvider.GetRequiredService<IPasswordHasher<UserEntity>>(),
                 scope.ServiceProvider.GetRequiredService<IMediaStorage>(),
-                demoSeedFolder,
+                seedFolder,
+                app.Environment.IsDevelopment(),
                 logger)
             .GetAwaiter()
             .GetResult();

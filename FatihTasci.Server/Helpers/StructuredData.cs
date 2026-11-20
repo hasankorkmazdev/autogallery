@@ -68,7 +68,7 @@ public static class StructuredData
             ("seller", Node("AutoDealer",
                 ("@id", DealerId(baseUrl)),
                 ("name", SiteFormat.GalleryName(settings)),
-                ("telephone", string.IsNullOrWhiteSpace(model.ContactPhone) ? settings.Phone : model.ContactPhone))));
+                ("telephone", string.IsNullOrWhiteSpace(model.AdvisorPhone) ? settings.Phone : model.AdvisorPhone))));
 
         var car = Node("Car",
             ("name", model.Title),

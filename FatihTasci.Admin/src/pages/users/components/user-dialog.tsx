@@ -31,6 +31,11 @@ const schema = z
       .min(1, "E-posta zorunludur.")
       .max(150, "E-posta en fazla 150 karakter olabilir.")
       .refine((v) => z.email().safeParse(v).success, { message: "Geçerli bir e-posta adresi girin." }),
+    // Sitede danışmanı olduğu ilanlarda görünür; boşsa galeri telefonu kullanılır.
+    phone: z
+      .string()
+      .trim()
+      .refine((v) => v === "" || /^[0-9 +()-]{10,20}$/.test(v), { message: "Geçerli bir telefon numarası girin." }),
     role: z.number().nullable().refine((v) => v !== null, { message: "Rol seçin." }),
     isActive: z.boolean(),
     password: z.string(),
@@ -63,7 +68,7 @@ export function UserDialog({ state, currentUserId, onOpenChange, onSaved }: User
   const [saving, setSaving] = useState(false);
   const form = useForm<Values, unknown, Output>({
     resolver: zodResolver(schema),
-    defaultValues: { isNew: true, name: "", surname: "", eMail: "", role: UserRole.Staff, isActive: true, password: "" },
+    defaultValues: { isNew: true, name: "", surname: "", eMail: "", phone: "", role: UserRole.Staff, isActive: true, password: "" },
   });
   const { errors } = form.formState;
   const isNew = !state?.user;
@@ -78,6 +83,7 @@ export function UserDialog({ state, currentUserId, onOpenChange, onSaved }: User
       name: u?.name ?? "",
       surname: u?.surname ?? "",
       eMail: u?.eMail ?? "",
+      phone: u?.phone ?? "",
       role: u?.role ?? UserRole.Staff,
       isActive: u?.isActive ?? true,
       password: "",
@@ -91,6 +97,7 @@ export function UserDialog({ state, currentUserId, onOpenChange, onSaved }: User
         name: values.name.trim(),
         surname: values.surname.trim(),
         eMail: values.eMail.trim(),
+        phone: values.phone || null,
         role: values.role!,
         isActive: values.isActive,
         password: values.isNew ? values.password : undefined,
@@ -118,13 +125,16 @@ export function UserDialog({ state, currentUserId, onOpenChange, onSaved }: User
         <form id="user-form" autoComplete="off" noValidate onSubmit={form.handleSubmit(submit)}>
           <FieldGroup>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <InputField id="user-name" label="Ad" required description="Panelde görünen ad."
+              <InputField id="user-name" label="Ad" required description="Panelde ve danışmanı olduğu ilanlarda görünür."
                 error={errors.name?.message} autoComplete="off" {...form.register("name")} />
-              <InputField id="user-surname" label="Soyad" required description="Panelde görünen soyad."
+              <InputField id="user-surname" label="Soyad" required description="Panelde ve danışmanı olduğu ilanlarda görünür."
                 error={errors.surname?.message} autoComplete="off" {...form.register("surname")} />
             </div>
-            <InputField id="user-email" label="E-posta" required description="Giriş için kullanılır."
+            <InputField id="user-email" label="E-posta" required description="Giriş için kullanılır, sitede görünmez."
               error={errors.eMail?.message} autoComplete="off" {...form.register("eMail")} />
+            <InputField id="user-phone" label="İletişim telefonu" type="tel" maxLength={20}
+              description="Danışmanı olduğu ilanlarda &quot;Ara&quot; bu numarayı arar; cep telefonuysa WhatsApp da buraya gelir. Boşsa galeri telefonu kullanılır."
+              error={errors.phone?.message} autoComplete="off" {...form.register("phone")} />
             {isNew && (
               <InputField id="user-password" label="Şifre" required password description="En az 8 karakter. Kullanıcıya siz iletin."
                 error={errors.password?.message} autoComplete="new-password" {...form.register("password")} />

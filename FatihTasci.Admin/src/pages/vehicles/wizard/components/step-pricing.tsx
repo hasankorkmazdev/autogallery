@@ -2,9 +2,11 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSearchParams } from "react-router-dom";
 import { FieldGroup } from "@/components/ui/field";
-import { NumberField, SwitchField, TextareaField } from "@/components/form/form-fields";
-import { InputField } from "@/components/ui/input-field";
+import { NumberField, RichTextField, SwitchField, TextSelectField } from "@/components/form/form-fields";
 import { vehiclesService } from "@/api/services/vehicles.service";
+import { usersService } from "@/api/services/users.service";
+import type { Advisor } from "@/api/types";
+import { useQuery } from "@/hooks/use-query";
 import { pricingSchema, type PricingValues } from "../schemas";
 import { useStepSave } from "../hooks/use-step-form";
 import type { StepProps } from "../types";
@@ -15,8 +17,17 @@ interface StepPricingProps extends StepProps {
   beforeStatusChange: () => Promise<boolean>;
 }
 
+// Seçili danışmana göre sitede hangi numaranın kullanılacağını anlatır.
+function advisorDescription(advisor: Advisor | undefined) {
+  if (!advisor) return "Sitede ilanın iletişim kutusunda adı görünür; \"Ara\" ve WhatsApp danışmanın telefonuna gider.";
+  if (!advisor.isActive) return "Bu kullanıcı pasif, sitede gösterilmez. Aktif bir danışman seçin.";
+  if (!advisor.phone) return "Bu kullanıcının iletişim telefonu yok, sitede galeri telefonu kullanılır. Telefon Kullanıcılar sayfasından eklenir.";
+  return `Sitede "Ara" ${advisor.phone} numarasını arar; cep telefonuysa WhatsApp da bu numaraya gider.`;
+}
+
 export function StepPricing({ vehicle, onSaved, registerSave, beforeStatusChange }: StepPricingProps) {
   const [, setSearchParams] = useSearchParams();
+  const advisors = useQuery("advisors", usersService.getAdvisors).data;
   const form = useForm<PricingValues>({
     resolver: zodResolver(pricingSchema),
     defaultValues: {
@@ -24,8 +35,7 @@ export function StepPricing({ vehicle, onSaved, registerSave, beforeStatusChange
       campaignPrice: vehicle.campaignPrice,
       showPrice: vehicle.showPrice,
       description: vehicle.description ?? "",
-      contactName: vehicle.contactName ?? "",
-      contactPhone: vehicle.contactPhone ?? "",
+      advisorId: vehicle.advisorId,
       isFeatured: vehicle.isFeatured,
       featuredOrder: vehicle.featuredOrder,
       isOpportunity: vehicle.isOpportunity,
@@ -35,6 +45,11 @@ export function StepPricing({ vehicle, onSaved, registerSave, beforeStatusChange
   const isFeatured = useWatch({ control: form.control, name: "isFeatured" });
   const [price, campaignPrice] = useWatch({ control: form.control, name: ["price", "campaignPrice"] });
   const discount = price && campaignPrice && campaignPrice > 0 && campaignPrice < price ? price - campaignPrice : null;
+  const advisorId = useWatch({ control: form.control, name: "advisorId" });
+  // Seçenekler aktif kullanıcılar; araca önceden atanmış pasif danışman da adıyla görünür.
+  const advisorOptions = (advisors ?? [])
+    .filter((a) => a.isActive || a.id === vehicle.advisorId)
+    .map((a) => ({ value: a.id, label: a.isActive ? a.fullName : `${a.fullName} (pasif)` }));
 
   useStepSave({
     form,
@@ -46,8 +61,7 @@ export function StepPricing({ vehicle, onSaved, registerSave, beforeStatusChange
         campaignPrice: v.campaignPrice,
         showPrice: v.showPrice,
         description: v.description.trim() || null,
-        contactName: v.contactName || null,
-        contactPhone: v.contactPhone || null,
+        advisorId: v.advisorId,
         isFeatured: v.isFeatured,
         featuredOrder: v.featuredOrder,
         isOpportunity: v.isOpportunity,
@@ -74,20 +88,20 @@ export function StepPricing({ vehicle, onSaved, registerSave, beforeStatusChange
             <SwitchField id="showPrice" label="Fiyatı sitede göster"
               description="Kapalıysa sitede &quot;Fiyat için arayınız&quot; yazar." checked={field.value} onChange={field.onChange} />
           )} />
-          <TextareaField id="description" label="Açıklama" rows={8} maxLength={10000}
-            description="Aracın hikâyesi, bakım geçmişi, ekstra bilgiler. Satır sonları korunur."
-            error={errors.description?.message} {...form.register("description")} />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <InputField id="contactName" label="İlan yetkilisi" maxLength={80} autoComplete="off"
-              description="Sitede ilanın iletişim kutusunda görünür, örn. Ahmet Yılmaz."
-              error={errors.contactName?.message} {...form.register("contactName")} />
-            <InputField id="contactPhone" label="Yetkili telefonu" type="tel" maxLength={20} autoComplete="off"
-              description="Boşsa galeri telefonu kullanılır. Cep telefonuysa WhatsApp da bu numaraya gider."
-              error={errors.contactPhone?.message} {...form.register("contactPhone")} />
-          </div>
+          <Controller control={form.control} name="description" render={({ field }) => (
+            <RichTextField id="description" label="Açıklama" placeholder="Aracın hikâyesi, bakım geçmişi, ekstra bilgiler…"
+              description="Sitedeki görünümüyle yazılır: renk, başlık, ortalama ve liste araç çubuğundan."
+              error={errors.description?.message} value={field.value} onChange={field.onChange} />
+          )} />
+          <Controller control={form.control} name="advisorId" render={({ field }) => (
+            <TextSelectField id="advisorId" label="Danışman" required options={advisorOptions}
+              placeholder={advisors ? "Danışman seçin" : "Yükleniyor..."}
+              description={advisorDescription(advisors?.find((a) => a.id === advisorId))}
+              error={errors.advisorId?.message} value={field.value} onChange={field.onChange} />
+          )} />
           <Controller control={form.control} name="isFeatured" render={({ field }) => (
             <SwitchField id="isFeatured" label="Vitrinde öne çıkar"
-              description="Ana sayfanın ilk ekranındaki vitrin mozaiğinde gösterilir (en çok 5 araç; eksikse en yeniler eklenir)." checked={field.value} onChange={field.onChange} />
+              description="Ana sayfadaki araç kaydırıcısının &quot;Vitrindekiler&quot; sekmesinde gösterilir (en çok 8 araç; eksikse en yeniler eklenir)." checked={field.value} onChange={field.onChange} />
           )} />
           {isFeatured && (
             <Controller control={form.control} name="featuredOrder" render={({ field }) => (
@@ -98,7 +112,7 @@ export function StepPricing({ vehicle, onSaved, registerSave, beforeStatusChange
           )}
           <Controller control={form.control} name="isOpportunity" render={({ field }) => (
             <SwitchField id="isOpportunity" label="Fırsat aracı"
-              description="Ana sayfadaki &quot;Fırsat Araçları&quot; şeridinde adı ve fiyatıyla akar." checked={field.value} onChange={field.onChange} />
+              description="Ana sayfadaki araç kaydırıcısının &quot;Fırsat Araçları&quot; sekmesinde gösterilir." checked={field.value} onChange={field.onChange} />
           )} />
         </FieldGroup>
       </form>

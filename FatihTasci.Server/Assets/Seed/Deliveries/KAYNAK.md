@@ -1,8 +1,8 @@
 # Örnek teslimat fotoğrafları
 
 Yalnız **geliştirme ortamında** `DbSeeder` örnek teslimat oluşturmak için kullanır; yayın paketine kopyalanmaz
-(`FatihTasci.Server.csproj`). Gerçek müşteri değildirler, canlı sitede kullanılmaz. Fotoğraf ya da örnek listesi
-değişince `DbSeeder.DemoDeliveriesSeedVersion` artırılır.
+(`FatihTasci.Server.csproj`). Gerçek müşteri değildirler, canlı sitede kullanılmaz. Örnek listesi ve sabit Id'leri
+`FatihTasci.Data/Context/Seed/Delivery/DemoDeliverySeedData.cs`'te.
 
 Pexels ve Unsplash'tan (Türkçe aramalarla), her biri farklı kişi / araç; dördü Türkiye'de çekilmiş (plaka görünür).
 Siteki kart 4:5 kırptığı için 4:5 kırpılıp 1280×1600 JPEG'e küçültüldü.

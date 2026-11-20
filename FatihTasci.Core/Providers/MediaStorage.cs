@@ -33,16 +33,23 @@ public class LocalMediaStorage : IMediaStorage
 
     public LocalMediaStorage(IConfiguration configuration, IWebHostEnvironment env)
     {
-        var root = configuration.GetValue<string>("Storage:Root");
-        if (string.IsNullOrWhiteSpace(root))
-            root = "Storage";
-        if (!Path.IsPathRooted(root))
-            root = Path.Combine(env.ContentRootPath, root);
+        var root = ResolveRoot(configuration, env.ContentRootPath);
 
         PublicRoot = Path.Combine(root, "public");
         PrivateRoot = Path.Combine(root, "private");
         Directory.CreateDirectory(PublicRoot);
         Directory.CreateDirectory(PrivateRoot);
+    }
+
+    /// <summary>
+    /// Storage:Root ayarı (boşsa "Storage"); göreli yol uygulama klasörüne göredir.
+    /// </summary>
+    public static string ResolveRoot(IConfiguration configuration, string contentRootPath)
+    {
+        var root = configuration.GetValue<string>("Storage:Root");
+        if (string.IsNullOrWhiteSpace(root))
+            root = "Storage";
+        return Path.IsPathRooted(root) ? root : Path.Combine(contentRootPath, root);
     }
 
     public string PublicRoot { get; }

@@ -1,0 +1,109 @@
+{
+    "Version":  1,
+    "Settings":  [
+                     {
+                         "Key":  "Content.Corporate.About",
+                         "Value":  "Otomotiv sektöründeki 40 yıllık tecrübemizle bugüne kadar 5.000\u0027den fazla araç satışı gerçekleştirdik ve binlerce müşterimizi aradıkları araçla buluşturduk.\n\nHer aracı satışa sunmadan önce titizlikle inceliyor, ekspertiz raporu ve hasar bilgisiyle şeffaf biçimde paylaşıyoruz. Showroomumuzda araçlarımızı yakından görebilir, ekibimizden bilgi alabilirsiniz.\n\nAraç almak, aracınızı satmak ya da konsinye olarak değerlendirmek istediğinizde süreç boyunca yanınızdayız."
+                     },
+                     {
+                         "Key":  "Content.Corporate.Intro",
+                         "Value":  "40 yıllık tecrübemizle araç alım satımında güveni, şeffaflığı ve müşteri memnuniyetini her şeyin önünde tutuyoruz."
+                     },
+                     {
+                         "Key":  "Content.Corporate.Mission",
+                         "Value":  "Her müşterimize ihtiyacına en uygun aracı doğru fiyat ve şeffaf bilgiyle sunmak; satış öncesinde ve sonrasında güvenilir bir çözüm ortağı olmak."
+                     },
+                     {
+                         "Key":  "Content.Corporate.Vision",
+                         "Value":  "Araç alım satımında güven, kalite ve şeffaflıkla örnek gösterilen; müşterilerinin ilk tercih ettiği galeri olmak."
+                     },
+                     {
+                         "Key":  "Content.Service.BuyVehicle.Body",
+                         "Value":  "İlanlarımızdaki her araç ekspertiz raporu, boya ve değişen bilgisiyle şeffaf biçimde sunulur. Beğendiğiniz aracı showroomumuzda yakından görebilir, test sürüşüne çıkabilirsiniz.\n\nAradığınız araç ilanlarımızda yoksa marka, model, yıl ve bütçe tercihlerinizi bize iletin. Size uygun aracı bulduğumuzda sizinle iletişime geçelim.\n\nTakasa uygun araçlarda mevcut aracınızı da değerlendirebiliriz. Noter ve evrak işlemlerinde süreç boyunca yanınızdayız."
+                     },
+                     {
+                         "Key":  "Content.Service.BuyVehicle.Summary",
+                         "Value":  "İlanlarımızdaki ekspertizli araçları inceleyin ya da aradığınız aracı bize söyleyin; bütçenize ve beklentinize uygun aracı birlikte bulalım."
+                     },
+                     {
+                         "Key":  "Content.Service.Consignment.Body",
+                         "Value":  "Konsinye satışta aracınız satılana kadar sizin adınıza galerimizde sergilenir. Satış fiyatını piyasa koşullarına göre birlikte belirleriz.\n\nAracınız ekspertizden geçer, fotoğrafları çekilir ve sitemizde ilan olarak yayınlanır. Alıcılarla görüşme, test sürüşü ve pazarlık süreçlerini biz yürütürüz.\n\nSatış gerçekleştiğinde noter işlemleri tamamlanır ve ödemeniz yapılır."
+                     },
+                     {
+                         "Key":  "Content.Service.Consignment.Summary",
+                         "Value":  "Aracınızı galerimizde sergileyelim, alıcısını biz bulalım. Satış sürecinin tamamını sizin adınıza güvenle yürütüyoruz."
+                     },
+                     {
+                         "Key":  "Content.Service.SellVehicle.Body",
+                         "Value":  "Aracınızın marka, model, yıl, kilometre ve hasar bilgilerini WhatsApp üzerinden ya da iletişim formundan bize iletin. Fotoğraf eklemeniz teklifimizi hızlandırır.\n\nAracınızı galerimize getirdiğinizde ekspertiz yapılır ve piyasa değerine göre size net bir teklif sunulur.\n\nAnlaştığımızda noter işlemleri ve ödeme hızlıca tamamlanır."
+                     },
+                     {
+                         "Key":  "Content.Service.SellVehicle.Summary",
+                         "Value":  "Aracınızı değerinde ve hızlıca alalım. Bilgilerini gönderin, ekspertizin ardından size net bir teklif sunalım."
+                     },
+                     {
+                         "Key":  "Content.Stats",
+                         "Value":  "[{\"Value\":\"40\",\"Label\":\"Y\\u0131ll\\u0131k Tecr\\u00FCbe\"},{\"Value\":\"5.000\\u002B\",\"Label\":\"Ara\\u00E7 Sat\\u0131\\u015F\\u0131\"},{\"Value\":\"20.000\\u002B\",\"Label\":\"Ziyaret\"}]"
+                     },
+                     {
+                         "Key":  "GalleryName",
+                         "Value":  "Fatih Taşcı Otomotiv"
+                     },
+                     {
+                         "Key":  "LogoPath",
+                         "Value":  "site/logo-dade75c9fbed42dcba3d9a2eb8c6f272.png"
+                     },
+                     {
+                         "Key":  "WatermarkEnabled",
+                         "Value":  "true"
+                     },
+                     {
+                         "Key":  "WorkingHours",
+                         "Value":  "Pazartesi - Cumartesi 09:00 - 19:00"
+                     }
+                 ],
+    "Showroom":  [
+                     {
+                         "Title":  "Showroom ve Vitrin",
+                         "Tag":  "Dış cephe \u0026 vitrin",
+                         "OriginalPath":  "originals/showroom/114136f43fa54363a68232a2dbea23de.jpg",
+                         "MediumPath":  "showroom/114136f43fa54363a68232a2dbea23de-1280.webp",
+                         "LargePath":  "showroom/114136f43fa54363a68232a2dbea23de-2400.webp"
+                     },
+                     {
+                         "Title":  "Kahve ve Birebir Görüşme",
+                         "Tag":  "Misafir alanı",
+                         "OriginalPath":  "originals/showroom/4b2d8dc2ccbd4a869ed485982a67a58f.jpg",
+                         "MediumPath":  "showroom/4b2d8dc2ccbd4a869ed485982a67a58f-1280.webp",
+                         "LargePath":  "showroom/4b2d8dc2ccbd4a869ed485982a67a58f-2400.webp"
+                     },
+                     {
+                         "Title":  "Işıklandırılmış Sergi Salonu",
+                         "Tag":  "Sergi salonu",
+                         "OriginalPath":  "originals/showroom/dea41f9d7a03445099a86033612cd7b3.jpg",
+                         "MediumPath":  "showroom/dea41f9d7a03445099a86033612cd7b3-1280.webp",
+                         "LargePath":  "showroom/dea41f9d7a03445099a86033612cd7b3-2400.webp"
+                     },
+                     {
+                         "Title":  "Detaylı Bakım ve Hazırlık",
+                         "Tag":  "Hazırlık",
+                         "OriginalPath":  "originals/showroom/f3749fe91c1a4395af8693ebc363cab2.jpg",
+                         "MediumPath":  "showroom/f3749fe91c1a4395af8693ebc363cab2-1280.webp",
+                         "LargePath":  "showroom/f3749fe91c1a4395af8693ebc363cab2-2400.webp"
+                     },
+                     {
+                         "Title":  "Kontrol ve Ekspertiz Alanı",
+                         "Tag":  "Ekspertiz",
+                         "OriginalPath":  "originals/showroom/6e8e0627575443bcbc1af5d5f07f2dcc.jpg",
+                         "MediumPath":  "showroom/6e8e0627575443bcbc1af5d5f07f2dcc-1280.webp",
+                         "LargePath":  "showroom/6e8e0627575443bcbc1af5d5f07f2dcc-2400.webp"
+                     },
+                     {
+                         "Title":  "Teslimat Sahnesi",
+                         "Tag":  "Teslimat",
+                         "OriginalPath":  "originals/showroom/a161521d750e43739d42dbcf8b6d0e46.jpg",
+                         "MediumPath":  "showroom/a161521d750e43739d42dbcf8b6d0e46-1280.webp",
+                         "LargePath":  "showroom/a161521d750e43739d42dbcf8b6d0e46-2400.webp"
+                     }
+                 ]
+}

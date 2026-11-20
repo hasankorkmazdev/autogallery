@@ -103,9 +103,11 @@ const SidebarProvider = React.forwardRef<
     }, [isMobile, setOpen, setOpenMobile])
 
     // Adds a keyboard shortcut to toggle the sidebar.
+    // Ctrl+B'yi zaten işleyen bir alan (açıklama editöründe kalın) varsa kenar çubuğu kapanmaz.
     React.useEffect(() => {
       const handleKeyDown = (event: KeyboardEvent) => {
         if (
+          !event.defaultPrevented &&
           event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
           (event.metaKey || event.ctrlKey)
         ) {

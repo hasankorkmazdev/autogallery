@@ -31,8 +31,13 @@
   <ItemGroup>
     <!-- Paylaşım görselinin yazı tipleri (ShareImageService, OFL); yayın klasörüne kopyalanır, sitede sunulmaz -->
     <None Update="Assets\**" CopyToPublishDirectory="PreserveNewest" />
-    <!-- Örnek teslimat fotoğrafları yalnız geliştirme seed'i içindir, yayına çıkmaz -->
-    <None Update="Assets\Seed\**" CopyToPublishDirectory="Never" />
+    <!--
+      Örnek teslimat fotoğrafları (DemoData), ilan fotoğrafları ve dışa aktarılan site verisi (Assets/Seed) yayına çıkmaz; canlıda gerekirse:
+      dotnet publish ... -p:IncludeDemoData=true
+    -->
+    <None Update="Assets\Seed\**" CopyToPublishDirectory="Never" Condition="'$(IncludeDemoData)' != 'true'" />
+    <!-- Geliştirme ayarları (yerel test şifresi) yayın paketine girmez -->
+    <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
   </ItemGroup>
 
   <!--
@@ -43,6 +48,24 @@
           Condition="'$(Configuration)' == 'Debug' AND '$(OS)' == 'Windows_NT' AND '$(DesignTimeBuild)' != 'true'">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\scripts\free-port.ps1&quot; -Port 5080 -ImagePath &quot;$(MSBuildProjectDirectory)\bin\Debug&quot;"
           ContinueOnError="true" />
+  </Target>
+
+  <!--
+    Yayın paketi Windows (IIS paylaşımlı barındırma) içindir: Linux / macOS / ARM yerel kütüphaneleri ve yerel hata
+    ayıklama sembolleri (libSkiaSharp.pdb her platformda ~90 MB) pakete alınmaz; win-x64 ve win-x86 kalır (uygulama
+    havuzu 32 ya da 64 bit olabilir). Linux'ta yayınlanacaksa: dotnet publish ... -p:PublishWindowsOnly=false
+  -->
+  <PropertyGroup>
+    <PublishWindowsOnly Condition="'$(PublishWindowsOnly)' == ''">true</PublishWindowsOnly>
+  </PropertyGroup>
+  <Target Name="TrimPublishRuntimes" AfterTargets="Publish" Condition="'$(PublishWindowsOnly)' == 'true' AND Exists('$(PublishDir)runtimes')">
+    <ItemGroup>
+      <_PublishRuntimeDir Include="$([System.IO.Directory]::GetDirectories('$(PublishDir)runtimes'))" />
+      <_ForeignRuntimeDir Include="@(_PublishRuntimeDir)" Condition="'%(Filename)' != 'win' AND '%(Filename)' != 'win-x64' AND '%(Filename)' != 'win-x86'" />
+      <_NativeSymbols Include="$(PublishDir)runtimes\**\*.pdb" />
+    </ItemGroup>
+    <RemoveDir Directories="@(_ForeignRuntimeDir)" />
+    <Delete Files="@(_NativeSymbols)" />
   </Target>
 
 </Project>

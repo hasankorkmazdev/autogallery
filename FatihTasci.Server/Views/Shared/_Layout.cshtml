@@ -50,10 +50,9 @@
     <meta name="twitter:title" content="@fullTitle" />
     <meta name="twitter:description" content="@description" />
     <meta name="twitter:image" content="@ogImage" />
-    <meta name="theme-color" content="#0B0B0C" />
+    <meta name="theme-color" content="#FFFFFF" />
     @* Türkçe metinde latin ve latin-ext birlikte gerekir; ilk çizimde beklememek için önceden yüklenir *@
     <link rel="preload" href="/fonts/manrope-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/cormorant-garamond-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     @await RenderSectionAsync("Head", required: false)
 </head>
@@ -82,7 +81,12 @@
             </nav>
             @if (tel != null)
             {
-                <a class="header-phone" href="@tel">@settings.Phone</a>
+                <a class="btn btn-primary header-phone" href="@tel" aria-label="Bizi arayın: @settings.Phone">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+                        <path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z" />
+                    </svg>
+                    <span>@settings.Phone</span>
+                </a>
             }
         </div>
     </header>
@@ -93,8 +97,8 @@
 
     <footer class="site-footer">
         <div class="container footer-grid">
-            <div>
-                <div class="brand">
+            <div class="footer-brand">
+                <a class="brand" href="/">
                     @if (settings.LogoUrl != null)
                     {
                         <img class="brand-mark" src="@settings.LogoUrl" alt="@galleryName" />
@@ -103,26 +107,37 @@
                     {
                         <span>@galleryName</span>
                     }
-                </div>
+                </a>
                 @if (!string.IsNullOrWhiteSpace(settings.Address))
                 {
                     <p class="muted">@settings.Address</p>
-                }
-                @if (MapLinks.HasLocation(settings))
-                {
-                    <p><a href="@MapLinks.Directions(settings)" target="_blank" rel="noopener">Yol tarifi al</a></p>
                 }
                 @if (!string.IsNullOrWhiteSpace(settings.WorkingHours))
                 {
                     <p class="muted">@settings.WorkingHours</p>
                 }
-                <partial name="_SocialLinks" model="settings.SocialLinks" />
+                @if (MapLinks.HasLocation(settings))
+                {
+                    <p><a class="footer-strong" href="@MapLinks.Directions(settings)" target="_blank" rel="noopener">Yol tarifi al</a></p>
+                }
+            </div>
+            <div>
+                <h2 class="footer-title">İlanlar</h2>
+                <p><a href="/ilanlar">Tüm İlanlar</a></p>
+                <p><a href="/teslimatlar">Teslimatlar</a></p>
+                <p><a href="/hizmetler">Hizmetler</a></p>
+            </div>
+            <div>
+                <h2 class="footer-title">Kurumsal</h2>
+                <p><a href="/kurumsal">Hakkımızda</a></p>
+                <p><a href="/iletisim">İletişim</a></p>
+                <p><a href="/kvkk">KVKK Aydınlatma Metni</a></p>
             </div>
             <div>
                 <h2 class="footer-title">İletişim</h2>
                 @if (tel != null)
                 {
-                    <p><a href="@tel">@settings.Phone</a></p>
+                    <p><a class="footer-strong" href="@tel">@settings.Phone</a></p>
                 }
                 @if (!string.IsNullOrWhiteSpace(settings.Email))
                 {
@@ -133,17 +148,11 @@
                     <p><a href="@whatsApp" target="_blank" rel="noopener">WhatsApp</a></p>
                 }
             </div>
-            <div>
-                <h2 class="footer-title">Bağlantılar</h2>
-                <p><a href="/ilanlar">Tüm İlanlar</a></p>
-                <p><a href="/hizmetler">Hizmetler</a></p>
-                <p><a href="/teslimatlar">Teslimatlar</a></p>
-                <p><a href="/kurumsal">Kurumsal</a></p>
-                <p><a href="/iletisim">İletişim</a></p>
-                <p><a href="/kvkk">KVKK Aydınlatma Metni</a></p>
-            </div>
         </div>
-        <div class="container footer-bottom muted">© @DateTime.Now.Year @galleryName</div>
+        <div class="container footer-bottom">
+            <span class="muted">© @DateTime.Now.Year @galleryName</span>
+            <partial name="_SocialLinks" model="settings.SocialLinks" />
+        </div>
     </footer>
 
     @if (pageTel != null || pageWhatsApp != null)

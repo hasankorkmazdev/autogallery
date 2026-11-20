@@ -20,6 +20,12 @@ public class VehicleListItemModel
     public int PhotoCount { get; set; }
     public bool IsFeatured { get; set; }
     public bool IsOpportunity { get; set; }
+
+    /// <summary>
+    /// Danışmanın adı soyadı; danışman atanmamışsa null
+    /// </summary>
+    public string AdvisorName { get; set; }
+
     public string PublicUrl { get; set; }
     public DateTime CreateDate { get; set; }
     public DateTime? LastUpdateDate { get; set; }

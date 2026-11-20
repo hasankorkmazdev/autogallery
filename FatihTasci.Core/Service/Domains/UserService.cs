@@ -48,6 +48,7 @@ public class UserService : DomainService, IUserService
                 Name = x.Name,
                 Surname = x.Surname,
                 EMail = x.EMail,
+                Phone = x.Phone,
                 Role = x.Role,
                 IsActive = x.IsActive,
                 LastLoginDate = x.LastLoginDate,
@@ -56,6 +57,24 @@ public class UserService : DomainService, IUserService
             .ToListAsync();
 
         return Result(users);
+    }
+
+    public async Task<ServiceResultModel<List<AdvisorModel>>> GetAdvisorsAsync()
+    {
+        var advisors = await _userRepository.GetQuery()
+            .OrderByDescending(x => x.IsActive)
+            .ThenBy(x => x.Name)
+            .ThenBy(x => x.Surname)
+            .Select(x => new AdvisorModel
+            {
+                Id = x.Id,
+                FullName = x.Name + " " + x.Surname,
+                Phone = x.Phone,
+                IsActive = x.IsActive
+            })
+            .ToListAsync();
+
+        return Result(advisors);
     }
 
     public async Task<ServiceResultModel<UserListItemModel>> CreateAsync(SaveUserRequestModel request)
@@ -74,6 +93,7 @@ public class UserService : DomainService, IUserService
             Surname = request.Surname.Trim(),
             EMail = request.EMail.Trim(),
             NormalizedEMail = normalizedEmail,
+            Phone = NormalizePhone(request.Phone),
             Role = request.Role,
             IsActive = request.IsActive
         };
@@ -107,6 +127,7 @@ public class UserService : DomainService, IUserService
         user.Surname = request.Surname.Trim();
         user.EMail = request.EMail.Trim();
         user.NormalizedEMail = normalizedEmail;
+        user.Phone = NormalizePhone(request.Phone);
         user.Role = request.Role;
         user.IsActive = request.IsActive;
 
@@ -132,12 +153,15 @@ public class UserService : DomainService, IUserService
 
     private static string Normalize(string email) => email.Trim().ToLowerInvariant();
 
+    private static string NormalizePhone(string phone) => string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
+
     private static UserListItemModel ToModel(UserEntity x) => new()
     {
         Id = x.Id,
         Name = x.Name,
         Surname = x.Surname,
         EMail = x.EMail,
+        Phone = x.Phone,
         Role = x.Role,
         IsActive = x.IsActive,
         LastLoginDate = x.LastLoginDate,

@@ -44,12 +44,17 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
     }
 
     /// <summary>
-    /// Ana sayfa mozaiğindeki araç sayısı
+    /// Ana sayfadaki araç kaydırıcısının "Vitrin" sekmesindeki araç sayısı
     /// </summary>
-    public const int ShowcaseSize = 5;
+    public const int ShowcaseSize = 8;
 
     /// <summary>
-    /// "Fırsat Araçları" şeridindeki en fazla araç sayısı
+    /// Ana sayfadaki "Yeni Gelenler" sekmesindeki araç sayısı
+    /// </summary>
+    public const int LatestSize = 12;
+
+    /// <summary>
+    /// "Fırsat Araçları" sekmesindeki en fazla araç sayısı
     /// </summary>
     public const int OpportunityLimit = 30;
 
@@ -57,7 +62,7 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
     {
         var listed = _vehicleRepository.GetQuery().Where(x => ListedStatuses.Contains(x.Status));
 
-        // Mozaik: öne çıkanlar vitrin sırasıyla, eksik kalırsa en yeniler
+        // Vitrin sekmesi: öne çıkanlar vitrin sırasıyla, eksik kalırsa en yeniler
         var showcaseIds = await listed.Where(x => x.IsFeatured)
             .OrderBy(x => x.FeaturedOrder).ThenByDescending(x => x.PublishedAt)
             .Select(x => x.Id).Take(ShowcaseSize).ToListAsync();
@@ -73,11 +78,17 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
         return new HomePageModel
         {
             Showcase = showcaseIds.Select(id => showcase.First(c => c.Id == id)).ToList(),
-            Latest = await ToCardsAsync(listed.Where(x => !showcaseIds.Contains(x.Id)).OrderByDescending(x => x.PublishedAt).Take(6)),
+            Latest = await ToCardsAsync(listed.Where(x => !showcaseIds.Contains(x.Id)).OrderByDescending(x => x.PublishedAt).Take(LatestSize)),
             Opportunities = await ToCardsAsync(listed.Where(x => x.IsOpportunity)
                 .OrderByDescending(x => x.PublishedAt).Take(OpportunityLimit)),
             ListingCount = await listed.CountAsync(),
-            Brands = await GetListedBrandsAsync(listed)
+            Brands = await GetListedBrandsAsync(listed),
+            // Hızlı aramanın Model seçenekleri; marka seçilince site.js yalnız o markanınkileri gösterir
+            Series = await listed
+                .GroupBy(x => new { BrandSlug = x.Brand.Slug, x.Series.Slug, x.Series.Name })
+                .Select(g => new FilterOptionModel { Parent = g.Key.BrandSlug, Value = g.Key.Slug, Label = g.Key.Name, Count = g.Count() })
+                .OrderBy(x => x.Label)
+                .ToListAsync()
         };
     }
 
@@ -211,6 +222,7 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
             .Include(v => v.Series)
             .Include(v => v.CarModel)
             .Include(v => v.ExteriorColor)
+            .Include(v => v.Advisor)
             .Include(v => v.BodyParts)
             .Include(v => v.Features).ThenInclude(f => f.Feature)
             .Include(v => v.Media)
@@ -245,8 +257,9 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
             TramerAmount = x.TramerAmount,
             ExpertiseReportUrl = _storage.ToUrl(x.ExpertiseReportPath),
             Description = x.Description,
-            ContactName = x.ContactName,
-            ContactPhone = x.ContactPhone,
+            // Pasife alınan (galeriden ayrılan) danışman sitede gösterilmez, galerinin numaraları kullanılır.
+            AdvisorName = x.Advisor is { IsActive: true } ? $"{x.Advisor.Name} {x.Advisor.Surname}" : null,
+            AdvisorPhone = x.Advisor is { IsActive: true } ? x.Advisor.Phone : null,
             PublishedAt = x.PublishedAt,
             SoldAt = x.SoldAt,
             VideoUrl = x.VideoUrl,
@@ -399,6 +412,9 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
             CoverSmallUrl = _storage.ToUrl(r.Cover?.SmallPath),
             CoverLargeUrl = _storage.ToUrl(r.Cover?.LargePath),
             CoverAlt = r.Title,
+            BrandName = r.BrandName,
+            SeriesName = r.SeriesName,
+            ModelName = r.ModelName,
             Year = r.Year,
             Kilometer = r.Kilometer,
             FuelName = EnumHelper.GetDisplayName(r.FuelType),
@@ -415,6 +431,9 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
         return x => new CardRow
         {
             Title = x.Title,
+            BrandName = x.Brand.Name,
+            SeriesName = x.Series.Name,
+            ModelName = x.CarModel.Name,
             Slug = x.Slug,
             ListingNo = x.ListingNo,
             Year = x.Year,
@@ -492,6 +511,9 @@ public class PublicVehicleService : DomainService, IPublicVehicleService
     {
         public Guid Id { get; set; }
         public string Title { get; set; }
+        public string BrandName { get; set; }
+        public string SeriesName { get; set; }
+        public string ModelName { get; set; }
         public string Slug { get; set; }
         public int ListingNo { get; set; }
         public int? Year { get; set; }

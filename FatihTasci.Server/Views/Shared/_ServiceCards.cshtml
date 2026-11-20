@@ -1,7 +1,7 @@
 @model List<ServiceContentModel>
 @*
-    Hizmet kartları (ana sayfa, /hizmetler, hizmet sayfasının altı). Numara hizmetin sabit sırasıdır (01-03), her sayfada aynı.
-    Başlık h3'tür; kullanan sayfa üstte bir h2 verir. Yazılar panelde Site İçeriği'nden gelir.
+    Hizmet kartları (ana sayfa, /hizmetler, hizmet sayfasının altı): açık gri, yuvarlak köşeli kutu; numara hizmetin sabit
+    sırasıdır (01-03), her sayfada aynı. Başlık h3'tür; kullanan sayfa üstte bir h2 verir. Yazılar panelde Site İçeriği'nden gelir.
 *@
 <div class="service-grid">
     @foreach (var service in Model)
@@ -13,7 +13,7 @@
             {
                 <p class="service-summary">@service.Summary</p>
             }
-            <span class="service-more">Detaylı bilgi <span aria-hidden="true">→</span></span>
+            <span class="service-more">Detaylı bilgi <span class="service-arrow" aria-hidden="true">→</span></span>
         </a>
     }
 </div>

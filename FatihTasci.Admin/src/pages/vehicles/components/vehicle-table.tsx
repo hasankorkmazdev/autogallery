@@ -62,6 +62,9 @@ function TitleCell({ vehicle }: { vehicle: VehicleListItem }) {
         {vehicle.isFeatured && <Star className="size-3" aria-label="Vitrinde" />}
         {vehicle.isOpportunity && <Tag className="size-3" aria-label="Fırsat aracı" />}
       </span>
+      <span className="text-xs text-muted-foreground">
+        {vehicle.advisorName ? `Danışman: ${vehicle.advisorName}` : "Danışman atanmamış"}
+      </span>
       <span className="text-xs text-muted-foreground xl:hidden">
         {vehicle.year ?? "-"} · {formatKm(vehicle.kilometer)}
       </span>

@@ -1,34 +1,90 @@
-@model SiteSettingsModel
+@model HomePageModel
+@inject FatihTasci.Core.Service.Domains.Abstracts.ISiteSettingService SettingService
 @inject FatihTasci.Core.Service.Domains.Abstracts.ISiteContentService ContentService
+@using FatihTasci.Core.Models.Domain.Content
 @{
-    // Ana sayfa girişi. Video panelde Site İçeriği → Ana Sayfa'dan yüklenir; yüklenmemişse galerinin drone videosu
-    // (wwwroot/video, "GALERİ DRONE.mp4"ün kesilmemiş tamamı, ffmpeg ile H.264 1080p CRF 32 ve 720p CRF 31; afiş ilk kare).
+    // Ana sayfa girişi: galerinin drone videosu geniş bir bant olarak menünün altında, firma adı ve slogan solda; bandın alt
+    // kenarına binen beyaz arama kutusu (Marka / Model → /ilanlar). Video panelde Site İçeriği → Ana Sayfa'dan yüklenir;
+    // yüklenmemişse wwwroot/video'daki drone videosu ("GALERİ DRONE.mp4"ün kesilmemiş tamamı, H.264 1080p / 720p; afiş ilk kare).
     // Önce afiş görünür, video site.js [data-intro] ile ekrana gelince yüklenir (genişlik 1024 ve üstü HD, altı SD).
     // "Hareketi azalt" ya da veri tasarrufu açıksa yalnız afiş kalır.
-    var galleryName = SiteFormat.GalleryName(Model);
+    var settings = await SettingService.GetAsync();
+    var galleryName = SiteFormat.GalleryName(settings);
     var hero = (await ContentService.GetAsync()).HeroVideo;
+    var sellPath = new ServiceContentModel { Type = SiteServiceType.SellVehicle }.Path;
+    var consignmentPath = new ServiceContentModel { Type = SiteServiceType.Consignment }.Path;
 }
 <section class="intro" data-intro aria-labelledby="intro-title">
-    <img class="intro-media" src="@hero.PosterUrl"
-         srcset="@hero.PosterSmallUrl 960w, @hero.PosterUrl 1920w" sizes="100vw"
-         alt="@(hero.IsCustom ? $"{galleryName} galerisi" : $"{galleryName} galerisinin havadan görünümü")" width="1920" height="1080"
-         fetchpriority="high" decoding="async" />
-    <video class="intro-media intro-video" data-intro-video muted loop playsinline preload="none" aria-hidden="true"
-           data-src-hd="@hero.VideoHdUrl" data-src-sd="@hero.VideoSdUrl"></video>
+    <div class="intro-banner">
+        <img class="intro-media" src="@hero.PosterUrl"
+             srcset="@hero.PosterSmallUrl 960w, @hero.PosterUrl 1920w" sizes="100vw"
+             alt="@(hero.IsCustom ? $"{galleryName} galerisi" : $"{galleryName} galerisinin havadan görünümü")" width="1920" height="1080"
+             fetchpriority="high" decoding="async" />
+        <video class="intro-media intro-video" data-intro-video muted loop playsinline preload="none" aria-hidden="true"
+               data-src-hd="@hero.VideoHdUrl" data-src-sd="@hero.VideoSdUrl"></video>
 
-    <div class="container intro-content">
-        <div class="intro-text">
-            <h1 id="intro-title" class="intro-title">@galleryName</h1>
-            <p class="intro-lead">@ShareCards.SiteTagline</p>
-            <div class="intro-actions">
-                <a class="btn btn-primary" href="/ilanlar">Tüm ilanları incele</a>
-                <a class="btn btn-outline intro-btn" href="/iletisim">Ziyaret planla</a>
+        <div class="container intro-content">
+            <div class="intro-text">
+                <h1 id="intro-title" class="intro-title">@galleryName</h1>
+                <p class="intro-lead">@ShareCards.SiteTagline</p>
+                <div class="intro-actions">
+                    <a class="btn btn-primary" href="/ilanlar">Tüm ilanları incele</a>
+                    <a class="btn btn-glass" href="/iletisim">Ziyaret planla</a>
+                </div>
             </div>
+            <button type="button" class="intro-toggle" data-intro-toggle aria-label="Videoyu durdur" hidden>
+                <span class="intro-toggle-icon" aria-hidden="true"></span>
+            </button>
         </div>
-        <button type="button" class="intro-toggle" data-intro-toggle aria-label="Videoyu durdur" hidden>
-            <span class="intro-toggle-icon" aria-hidden="true"></span>
-        </button>
     </div>
 
-    <a class="intro-scroll" href="#vitrin" aria-label="Vitrindeki araçlara geç"><span aria-hidden="true"></span></a>
+    @* Hızlı arama: "Araç Al" sekmesi aramadır, diğerleri hizmet sayfalarına gider. Model seçenekleri marka seçilince
+       site.js [data-quick-search] ile o markanınkilere iner; JS yoksa markaya göre gruplu tam liste görünür. *@
+    <div class="container intro-search">
+        <div class="search-card">
+            <nav class="search-tabs" aria-label="Ne yapmak istiyorsunuz?">
+                <span class="search-tab is-active" aria-current="true">Araç Al</span>
+                <a class="search-tab" href="@sellPath">Aracımı Sat</a>
+                <a class="search-tab" href="@consignmentPath">Konsinye Satış</a>
+            </nav>
+            <form class="search-form" method="get" action="/ilanlar" data-quick-search>
+                <label class="search-field">
+                    <span class="sr-only">Marka</span>
+                    <select name="brand" data-qs-brand>
+                        <option value="">Marka</option>
+                        @foreach (var brand in Model.Brands)
+                        {
+                            <option value="@brand.Value">@brand.Label (@brand.Count)</option>
+                        }
+                    </select>
+                </label>
+                <label class="search-field">
+                    <span class="sr-only">Model</span>
+                    <select name="series" data-qs-series>
+                        <option value="">Model</option>
+                        @foreach (var brand in Model.Brands)
+                        {
+                            var series = Model.Series.Where(s => s.Parent == brand.Value).ToList();
+                            if (series.Count == 0)
+                            {
+                                continue;
+                            }
+                            <optgroup label="@brand.Label">
+                                @foreach (var s in series)
+                                {
+                                    <option value="@s.Value" data-brand="@brand.Value">@s.Label (@s.Count)</option>
+                                }
+                            </optgroup>
+                        }
+                    </select>
+                </label>
+                <button type="submit" class="btn btn-primary search-submit">Ara</button>
+                <a class="icon-btn search-more" href="/ilanlar" aria-label="Detaylı arama" title="Detaylı arama">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                        <path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" />
+                    </svg>
+                </a>
+            </form>
+        </div>
+    </div>
 </section>

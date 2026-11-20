@@ -40,10 +40,10 @@ public class PublicVehicleDetailModel
     public string Description { get; set; }
 
     /// <summary>
-    /// İlan yetkilisi ve telefonu. Telefon boşsa galeri telefonu kullanılır.
+    /// Satış danışmanı ve iletişim telefonu (yalnız danışman aktifse dolu). Telefon boşsa galeri telefonu kullanılır.
     /// </summary>
-    public string ContactName { get; set; }
-    public string ContactPhone { get; set; }
+    public string AdvisorName { get; set; }
+    public string AdvisorPhone { get; set; }
 
     public DateTime? PublishedAt { get; set; }
     public DateTime? SoldAt { get; set; }

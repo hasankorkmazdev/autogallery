@@ -11,9 +11,9 @@
     var badge = SiteFormat.StatusBadge(Model.Status);
     var isSold = Model.Status == VehicleStatus.Sold;
     var whatsAppMessage = $"Merhaba, {Model.ListingNo} numaralı ilan ({Model.Title}) hakkında bilgi almak istiyorum.";
-    // İlan yetkilisinin telefonu varsa "Ara" onu arar; cep telefonuysa WhatsApp da ona gider.
-    var contactPhone = string.IsNullOrWhiteSpace(Model.ContactPhone) ? settings.Phone : Model.ContactPhone;
-    var whatsAppNumber = SiteFormat.MobileToWhatsApp(Model.ContactPhone) ?? settings.WhatsApp;
+    // Danışmanın telefonu varsa "Ara" onu arar; cep telefonuysa WhatsApp da ona gider. Yoksa galerinin numaraları.
+    var contactPhone = string.IsNullOrWhiteSpace(Model.AdvisorPhone) ? settings.Phone : Model.AdvisorPhone;
+    var whatsAppNumber = SiteFormat.MobileToWhatsApp(Model.AdvisorPhone) ?? settings.WhatsApp;
     var whatsApp = SiteFormat.WhatsAppLink(whatsAppNumber, whatsAppMessage);
     var tel = SiteFormat.TelLink(contactPhone);
     var cover = Model.Images.FirstOrDefault();
@@ -64,10 +64,19 @@
                     <a class="brand-logo brand-logo-lg" href="/ilanlar/@Model.BrandSlug" title="@Model.BrandName ilanları"><img src="@Model.BrandLogoUrl" alt="@Model.BrandName" width="56" height="56" /></a>
                 }
                 <div>
-                <h1 class="display">@Model.Title</h1>
-                <p class="muted">İlan No: @Model.ListingNo</p>
+                    <h1 class="display">@Model.Title</h1>
+                    @if (Model.Summary.Count > 0)
+                    {
+                        <ul class="chips">
+                            @foreach (var item in Model.Summary)
+                            {
+                                <li>@item</li>
+                            }
+                        </ul>
+                    }
                 </div>
             </div>
+            <span class="listing-no">İlan No <strong>@Model.ListingNo</strong></span>
         </div>
 
         @if (isSold)
@@ -227,11 +236,11 @@
                             <p class="price-saving">Kampanya: @saving indirim</p>
                         }
                     }
-                    @if (!string.IsNullOrWhiteSpace(Model.ContactName))
+                    @if (!string.IsNullOrWhiteSpace(Model.AdvisorName))
                     {
                         <div class="contact-person">
-                            <span class="muted">İlan yetkilisi</span>
-                            <strong>@Model.ContactName</strong>
+                            <span class="muted">Satış danışmanı</span>
+                            <strong>@Model.AdvisorName</strong>
                         </div>
                     }
                     <div class="contact-actions">

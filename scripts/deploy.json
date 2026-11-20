@@ -1,0 +1,15 @@
+{
+  "Profile": "fatihtasci",
+  "ServerProject": "FatihTasci.Server",
+  "PanelDir": "FatihTasci.Admin",
+  "PublishDir": "publish",
+  "SettingsFile": "appsettings.Production.json",
+  "RequiredSettings": [
+    "ConnectionStrings:DefaultConnection",
+    "JwtSettings:Secret"
+  ],
+  "WarnIfTrue": [
+    "Seed:Enabled"
+  ],
+  "LogsPath": "Storage/private/logs"
+}

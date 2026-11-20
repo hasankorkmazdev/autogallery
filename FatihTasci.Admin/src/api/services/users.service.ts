@@ -1,8 +1,9 @@
 import { api, unwrap, unwrapWithMessage } from "@/api/axios";
-import type { SaveUserRequest, ServiceResult, UserListItem } from "@/api/types";
+import type { Advisor, SaveUserRequest, ServiceResult, UserListItem } from "@/api/types";
 
-// Yalnız Yönetici rolü kullanabilir (sunucu 403 döner).
+// Yalnız Yönetici rolü kullanabilir (sunucu 403 döner); getAdvisors tüm rollere açıktır.
 export const usersService = {
+  getAdvisors: () => unwrap(api.get<ServiceResult<Advisor[]>>("/advisors")),
   getAll: () => unwrap(api.get<ServiceResult<UserListItem[]>>("/users")),
   create: (request: SaveUserRequest) => unwrapWithMessage(api.post<ServiceResult<UserListItem>>("/users", request)),
   update: (id: string, request: SaveUserRequest) =>

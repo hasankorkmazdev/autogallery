@@ -47,6 +47,7 @@ export function UserTable({ items, currentUserId, onEdit, onResetPassword }: Use
               {user.id === currentUserId && <span className="ml-2 text-xs text-muted-foreground">(siz)</span>}
             </span>
             <span className="text-xs text-muted-foreground break-all">{user.eMail}</span>
+            {user.phone && <span className="text-xs text-muted-foreground">{user.phone}</span>}
             {/* Dar ekranda rol ve durum sütunları gizlenir, burada görünür. */}
             <span className="flex flex-wrap gap-1 pt-1 sm:hidden">
               {roleBadge(user)}

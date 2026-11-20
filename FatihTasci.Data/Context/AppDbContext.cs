@@ -16,6 +16,12 @@ public class AppDbContext : DbContext
 {
     public const string ListingNoSequence = "ListingNumbers";
 
+    /// <summary>
+    /// Seed'li int tablolarda (katalog, renk, donanım, showroom sahnesi, teslimat) seed Id'leri bunun altındadır; panelden
+    /// eklenen kayıtların identity'si buradan başlar. Böylece seed'e sonradan eklenen kayıt panelin kaydıyla çakışmaz.
+    /// </summary>
+    public const int SeedIdLimit = 100_000;
+
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
     }
@@ -66,6 +72,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.EMail).HasMaxLength(150).IsRequired();
             e.Property(x => x.NormalizedEMail).HasMaxLength(150).IsRequired();
             e.Property(x => x.PasswordHash).HasMaxLength(500).IsRequired();
+            e.Property(x => x.Phone).HasMaxLength(20);
             e.HasIndex(x => x.NormalizedEMail).IsUnique().HasFilter("[IsDelete] = 0");
         });
     }
@@ -74,6 +81,7 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<BrandEntity>(e =>
         {
+            e.Property(x => x.Id).UseIdentityColumn(SeedIdLimit);
             e.Property(x => x.Name).HasMaxLength(60).IsRequired();
             e.Property(x => x.Slug).HasMaxLength(80).IsRequired();
             e.Property(x => x.LogoPath).HasMaxLength(300);
@@ -82,6 +90,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<SeriesEntity>(e =>
         {
+            e.Property(x => x.Id).UseIdentityColumn(SeedIdLimit);
             e.Property(x => x.Name).HasMaxLength(80).IsRequired();
             e.Property(x => x.Slug).HasMaxLength(100).IsRequired();
             e.HasOne(x => x.Brand).WithMany(x => x.Series).HasForeignKey(x => x.BrandId);
@@ -90,6 +99,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<CarModelEntity>(e =>
         {
+            e.Property(x => x.Id).UseIdentityColumn(SeedIdLimit);
             e.Property(x => x.Name).HasMaxLength(120).IsRequired();
             e.Property(x => x.Slug).HasMaxLength(140).IsRequired();
             e.HasOne(x => x.Series).WithMany(x => x.Models).HasForeignKey(x => x.SeriesId);
@@ -98,6 +108,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<ColorEntity>(e =>
         {
+            e.Property(x => x.Id).UseIdentityColumn(SeedIdLimit);
             e.Property(x => x.Name).HasMaxLength(40).IsRequired();
             e.Property(x => x.HexCode).HasMaxLength(9);
         });
@@ -116,8 +127,6 @@ public class AppDbContext : DbContext
             e.Property(x => x.Slug).HasMaxLength(200);
             e.Property(x => x.Title).HasMaxLength(150).IsRequired();
             e.Property(x => x.InteriorColor).HasMaxLength(50);
-            e.Property(x => x.ContactName).HasMaxLength(80);
-            e.Property(x => x.ContactPhone).HasMaxLength(20);
             e.Property(x => x.TramerAmount).HasColumnType("decimal(18,2)");
             e.Property(x => x.Price).HasColumnType("decimal(18,2)");
             e.Property(x => x.CampaignPrice).HasColumnType("decimal(18,2)");
@@ -131,6 +140,7 @@ public class AppDbContext : DbContext
             e.HasOne(x => x.Series).WithMany().HasForeignKey(x => x.SeriesId);
             e.HasOne(x => x.CarModel).WithMany().HasForeignKey(x => x.CarModelId);
             e.HasOne(x => x.ExteriorColor).WithMany().HasForeignKey(x => x.ExteriorColorId);
+            e.HasOne(x => x.Advisor).WithMany().HasForeignKey(x => x.AdvisorId);
         });
 
         modelBuilder.Entity<VehicleBodyPartEntity>(e =>
@@ -142,6 +152,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<FeatureEntity>(e =>
         {
+            e.Property(x => x.Id).UseIdentityColumn(SeedIdLimit);
             e.Property(x => x.Name).HasMaxLength(80).IsRequired();
             e.HasIndex(x => new { x.Category, x.Name }).IsUnique();
         });
@@ -195,6 +206,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<DeliveryEntity>(e =>
         {
+            e.Property(x => x.Id).UseIdentityColumn(SeedIdLimit);
             e.Property(x => x.VehicleTitle).HasMaxLength(80).IsRequired();
             e.Property(x => x.CustomerName).HasMaxLength(60);
             e.Property(x => x.City).HasMaxLength(40);
@@ -217,6 +229,7 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<ShowroomSceneEntity>(e =>
         {
+            e.Property(x => x.Id).UseIdentityColumn(SeedIdLimit);
             e.Property(x => x.Tag).HasMaxLength(40).IsRequired();
             e.Property(x => x.Title).HasMaxLength(80).IsRequired();
             e.Property(x => x.OriginalPath).HasMaxLength(300);

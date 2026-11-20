@@ -12,11 +12,12 @@
     Calistirma: SSMS'te dosyayi acip calistirin ya da
       sqlcmd -S <sunucu> -d <veritabani> -U <kullanici> -P <sifre> -I -b -i FatihTasci-schema.sql
 
-    Yalniz sema: katalog (marka / model / paket), renkler, donanimlar, site ayarlari ve ilk Yonetici uygulama ilk
-    acilista DbSeeder ile eklenir. Yayin ayarlarinda ConnectionStrings:DefaultConnection, JwtSettings:Secret
-    (en az 32 karakter), SeedAdmin:Email ve SeedAdmin:Password dolu olmalidir.
+    Yalniz sema: katalog (marka / model / paket), renkler, donanimlar, site ayarlari ve Yonetici, uygulama acilirken
+    Seed:Enabled aciksa DbSeeder ile Id'leriyle eklenir (ilk kurulumda acik olmali). Seed'li int tablolarin identity'si
+    100000'den baslar: seed Id'leri bunun altinda kalir, panelden eklenen kayitlar 100000'den baslar. Yayin
+    ayarlarinda ConnectionStrings:DefaultConnection ve JwtSettings:Secret (en az 32 karakter) dolu olmalidir.
 
-    Icerik: 16 tablo, 21 indeks.
+    Icerik: 16 tablo, 22 indeks.
 */
 
 SET ANSI_NULLS ON;
@@ -53,7 +54,7 @@ GO
 
 
 CREATE TABLE [Catalog].[Brands] (
-    [Id] int NOT NULL IDENTITY,
+    [Id] int NOT NULL IDENTITY(100000, 1),
     [IsActive] bit NOT NULL,
     [IsDelete] bit NOT NULL,
     [CreateDate] datetime2 NOT NULL,
@@ -72,7 +73,7 @@ GO
 
 
 CREATE TABLE [Catalog].[Colors] (
-    [Id] int NOT NULL IDENTITY,
+    [Id] int NOT NULL IDENTITY(100000, 1),
     [IsActive] bit NOT NULL,
     [Name] nvarchar(40) NOT NULL,
     [HexCode] nvarchar(9) NULL,
@@ -83,7 +84,7 @@ GO
 
 
 CREATE TABLE [Crm].[Deliveries] (
-    [Id] int NOT NULL IDENTITY,
+    [Id] int NOT NULL IDENTITY(100000, 1),
     [IsActive] bit NOT NULL,
     [IsDelete] bit NOT NULL,
     [CreateDate] datetime2 NOT NULL,
@@ -105,7 +106,7 @@ GO
 
 
 CREATE TABLE [Inventory].[Features] (
-    [Id] int NOT NULL IDENTITY,
+    [Id] int NOT NULL IDENTITY(100000, 1),
     [IsActive] bit NOT NULL,
     [Category] int NOT NULL,
     [Name] nvarchar(80) NOT NULL,
@@ -116,7 +117,7 @@ GO
 
 
 CREATE TABLE [Common].[ShowroomScenes] (
-    [Id] int NOT NULL IDENTITY,
+    [Id] int NOT NULL IDENTITY(100000, 1),
     [IsActive] bit NOT NULL,
     [IsDelete] bit NOT NULL,
     [CreateDate] datetime2 NOT NULL,
@@ -170,6 +171,7 @@ CREATE TABLE [Identity].[Users] (
     [PasswordHash] nvarchar(500) NOT NULL,
     [Role] int NOT NULL,
     [LastLoginDate] datetime2 NULL,
+    [Phone] nvarchar(20) NULL,
     [CreateDate] datetime2 NOT NULL,
     [LastUpdateDate] datetime2 NULL,
     [LastDeleteDate] datetime2 NULL,
@@ -182,7 +184,7 @@ GO
 
 
 CREATE TABLE [Catalog].[Series] (
-    [Id] int NOT NULL IDENTITY,
+    [Id] int NOT NULL IDENTITY(100000, 1),
     [IsActive] bit NOT NULL,
     [IsDelete] bit NOT NULL,
     [CreateDate] datetime2 NOT NULL,
@@ -202,7 +204,7 @@ GO
 
 
 CREATE TABLE [Catalog].[CarModels] (
-    [Id] int NOT NULL IDENTITY,
+    [Id] int NOT NULL IDENTITY(100000, 1),
     [IsActive] bit NOT NULL,
     [IsDelete] bit NOT NULL,
     [CreateDate] datetime2 NOT NULL,
@@ -262,8 +264,7 @@ CREATE TABLE [Inventory].[Vehicles] (
     [CampaignPrice] decimal(18,2) NULL,
     [ShowPrice] bit NOT NULL,
     [Description] nvarchar(max) NULL,
-    [ContactName] nvarchar(80) NULL,
-    [ContactPhone] nvarchar(20) NULL,
+    [AdvisorId] uniqueidentifier NULL,
     [IsFeatured] bit NOT NULL,
     [FeaturedOrder] int NOT NULL,
     [IsOpportunity] bit NOT NULL,
@@ -274,7 +275,8 @@ CREATE TABLE [Inventory].[Vehicles] (
     CONSTRAINT [FK_Vehicles_Brands_BrandId] FOREIGN KEY ([BrandId]) REFERENCES [Catalog].[Brands] ([Id]) ON DELETE NO ACTION,
     CONSTRAINT [FK_Vehicles_CarModels_CarModelId] FOREIGN KEY ([CarModelId]) REFERENCES [Catalog].[CarModels] ([Id]) ON DELETE NO ACTION,
     CONSTRAINT [FK_Vehicles_Colors_ExteriorColorId] FOREIGN KEY ([ExteriorColorId]) REFERENCES [Catalog].[Colors] ([Id]),
-    CONSTRAINT [FK_Vehicles_Series_SeriesId] FOREIGN KEY ([SeriesId]) REFERENCES [Catalog].[Series] ([Id]) ON DELETE NO ACTION
+    CONSTRAINT [FK_Vehicles_Series_SeriesId] FOREIGN KEY ([SeriesId]) REFERENCES [Catalog].[Series] ([Id]) ON DELETE NO ACTION,
+    CONSTRAINT [FK_Vehicles_Users_AdvisorId] FOREIGN KEY ([AdvisorId]) REFERENCES [Identity].[Users] ([Id])
 );
 GO
 
@@ -425,6 +427,10 @@ GO
 
 
 CREATE INDEX [IX_VehicleMedia_VehicleId_SortOrder] ON [Inventory].[VehicleMedia] ([VehicleId], [SortOrder]);
+GO
+
+
+CREATE INDEX [IX_Vehicles_AdvisorId] ON [Inventory].[Vehicles] ([AdvisorId]);
 GO
 
 

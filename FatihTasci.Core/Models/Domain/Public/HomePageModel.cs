@@ -8,18 +8,18 @@ namespace FatihTasci.Core.Models.Domain.Public;
 public class HomePageModel
 {
     /// <summary>
-    /// İlk ekrandaki mozaik (en çok 5 araç): panelde "Vitrinde öne çıkar" işaretliler vitrin sırasıyla,
-    /// 5'ten azsa en yeni araçlarla tamamlanır.
+    /// Araç kaydırıcısının "Vitrin" sekmesi (en çok PublicVehicleService.ShowcaseSize): panelde "Vitrinde öne çıkar"
+    /// işaretliler vitrin sırasıyla, eksik kalırsa en yeni araçlarla tamamlanır.
     /// </summary>
     public List<VehicleCardModel> Showcase { get; set; } = new();
 
     /// <summary>
-    /// Mozaikte olmayan en yeni araçlar
+    /// "Yeni Gelenler" sekmesi: Vitrin sekmesinde olmayan en yeni araçlar
     /// </summary>
     public List<VehicleCardModel> Latest { get; set; } = new();
 
     /// <summary>
-    /// Panelde "Fırsat aracı" işaretli yayındaki araçlar (en yeni önce, en çok 30). Mozaiğin altındaki akan yazı şeridinde gösterilir.
+    /// "Fırsat Araçları" sekmesi: panelde "Fırsat aracı" işaretli yayındaki araçlar (en yeni önce, en çok 30).
     /// </summary>
     public List<VehicleCardModel> Opportunities { get; set; } = new();
     public int ListingCount { get; set; }
@@ -28,6 +28,11 @@ public class HomePageModel
     /// İlanda aracı olan markalar (logolarıyla)
     /// </summary>
     public List<FilterOptionModel> Brands { get; set; } = new();
+
+    /// <summary>
+    /// Girişteki hızlı aramanın Model seçenekleri: ilanda aracı olan seriler (Parent = marka slug'ı)
+    /// </summary>
+    public List<FilterOptionModel> Series { get; set; } = new();
 
     /// <summary>
     /// Galeri atmosferi sahneleri (aktif ve fotoğraflı). Boşsa bölüm gösterilmez.

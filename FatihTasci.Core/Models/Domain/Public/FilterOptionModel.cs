@@ -12,4 +12,9 @@ public class FilterOptionModel
     /// Yalnız marka seçeneklerinde: logo adresi
     /// </summary>
     public string LogoUrl { get; set; }
+
+    /// <summary>
+    /// Yalnız ana sayfa aramasındaki seri (Model) seçeneklerinde: markanın slug'ı
+    /// </summary>
+    public string Parent { get; set; }
 }

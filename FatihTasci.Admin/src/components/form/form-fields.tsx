@@ -9,6 +9,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { NumberInput } from "@/components/ui/number-input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/rich-text/rich-text-editor";
 import type { EnumOption } from "@/api/types";
 
 // Etiket + kontrol + açıklama/hata dörtlüsü (CLAUDE.md kural 11 ve 12). InputField'ın diğer
@@ -63,6 +64,52 @@ export function SelectField({
         value={value === null || value === undefined ? "" : String(value)}
         onValueChange={(v) => onChange(v === "" ? null : Number(v))}
         options={options.map((option) => ({ value: String(option.value), label: option.label, icon: option.icon }))}
+        placeholder={placeholder}
+        disabled={disabled}
+        aria-invalid={error ? true : undefined}
+      />
+      <FieldFooter description={description} error={error} />
+    </Field>
+  );
+}
+
+export interface TextSelectOption {
+  value: string;
+  label: string;
+  icon?: React.ReactNode;
+}
+
+interface TextSelectFieldProps extends BaseFieldProps {
+  options: TextSelectOption[];
+  value: string | null | undefined;
+  onChange: (value: string | null) => void;
+  placeholder?: string;
+  disabled?: boolean;
+}
+
+/** Değeri metin olan seçim kutusu (örn. Guid kimlikli kullanıcılar); sayısal değerler için SelectField. */
+export function TextSelectField({
+  id,
+  label,
+  description,
+  error,
+  required,
+  options,
+  value,
+  onChange,
+  placeholder = "Seçin",
+  disabled,
+}: TextSelectFieldProps) {
+  return (
+    <Field>
+      <FieldLabel htmlFor={id} required={required}>
+        {label}
+      </FieldLabel>
+      <Combobox
+        id={id}
+        value={value ?? ""}
+        onValueChange={(v) => onChange(v === "" ? null : v)}
+        options={options}
         placeholder={placeholder}
         disabled={disabled}
         aria-invalid={error ? true : undefined}
@@ -141,6 +188,25 @@ export const TextareaField = React.forwardRef<HTMLTextAreaElement, TextareaField
   ),
 );
 TextareaField.displayName = "TextareaField";
+
+interface RichTextFieldProps extends BaseFieldProps {
+  value: string;
+  onChange: (html: string) => void;
+  placeholder?: string;
+}
+
+/** Renk, başlık, hizalama ve liste destekli metin (HTML). Sunucu izinli etiket / sınıf dışını temizler. */
+export function RichTextField({ id, label, description, error, required, value, onChange, placeholder }: RichTextFieldProps) {
+  return (
+    <Field>
+      <FieldLabel htmlFor={id} required={required}>
+        {label}
+      </FieldLabel>
+      <RichTextEditor id={id} value={value} onChange={onChange} placeholder={placeholder} invalid={!!error} />
+      <FieldFooter description={description} error={error} />
+    </Field>
+  );
+}
 
 interface SwitchFieldProps extends BaseFieldProps {
   checked: boolean;

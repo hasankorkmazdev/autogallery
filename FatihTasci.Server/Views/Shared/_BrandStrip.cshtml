@@ -1,17 +1,20 @@
 @model List<FilterOptionModel>
 @*
-    İlanda aracı olan markalar, logolarıyla. Logolar koyu zeminde de okunsun diye açık bir kutuda gösterilir.
+    İlanda aracı olan markalar, logolarıyla.
+    ViewData["BrandVariant"]: "tiles" (ana sayfa: kare kutuda logo ve ad) ya da boş (ilanlar: logo + ad + araç sayısı).
     ViewData["ActiveBrand"]: seçili marka slug'ı (ilanlar sayfasında vurgulanır).
 *@
 @{
     var active = ViewData["ActiveBrand"] as string;
+    var tiles = (ViewData["BrandVariant"] as string) == "tiles";
 }
 @if (Model.Count > 0)
 {
-    <nav class="brand-strip" aria-label="Markalar">
+    <nav class="brand-strip @(tiles ? "brand-tiles" : null)" aria-label="Markalar">
         @foreach (var brand in Model)
         {
-            <a class="brand-chip @(brand.Value == active ? "active" : null)" href="/ilanlar/@brand.Value" title="@brand.Label (@brand.Count araç)">
+            <a class="brand-chip @(brand.Value == active ? "active" : null)" href="/ilanlar/@brand.Value" title="@brand.Label (@brand.Count araç)"
+               aria-current="@(brand.Value == active ? "page" : null)">
                 <span class="brand-logo">
                     @if (!string.IsNullOrEmpty(brand.LogoUrl))
                     {

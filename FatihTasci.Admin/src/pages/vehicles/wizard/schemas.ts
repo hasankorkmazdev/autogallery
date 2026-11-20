@@ -171,21 +171,15 @@ export const pricingSchema = z
     // Boşsa kampanya yok; doluysa sitede fiyatın üstü çizilir.
     campaignPrice: z.number().nullable(),
     showPrice: z.boolean(),
-    description: z.string().max(10000, "Açıklama en fazla 10.000 karakter olabilir."),
-    // İlan yetkilisi ve telefonu isteğe bağlı; boşsa sitede galeri telefonu kullanılır.
-    contactName: z.string().trim().max(80, "Yetkili adı en fazla 80 karakter olabilir."),
-    contactPhone: z
-      .string()
-      .trim()
-      .refine((v) => v === "" || /^[0-9 +()-]{10,20}$/.test(v), { message: "Geçerli bir telefon numarası girin." }),
+    // HTML uzunluğu (biçimlendirme dahil); sunucudaki sınırla aynı.
+    description: z.string().max(20000, "Açıklama biçimlendirmesiyle birlikte en fazla 20.000 karakter olabilir."),
+    // Danışman zorunlu; aktif olduğunu sunucu kontrol eder. Sitede "Ara" ve WhatsApp danışmanın telefonuna gider.
+    advisorId: z.string().nullable().refine((v) => v !== null && v !== "", { message: "Danışman seçin." }),
     isFeatured: z.boolean(),
     featuredOrder: z.number().min(0, "Vitrin sırası 0 ya da daha büyük olmalıdır."),
     isOpportunity: z.boolean(),
   })
   .superRefine((v, ctx) => {
-    if (v.contactName !== "" && v.contactPhone === "") {
-      ctx.addIssue({ code: "custom", path: ["contactPhone"], message: "Yetkili adı girildiyse telefon da girilmelidir." });
-    }
     if (v.campaignPrice === null) return;
     if (v.campaignPrice <= 0) {
       ctx.addIssue({ code: "custom", path: ["campaignPrice"], message: "Kampanyalı fiyat 0'dan büyük olmalıdır." });

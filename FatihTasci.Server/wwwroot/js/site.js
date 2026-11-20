@@ -277,7 +277,7 @@
 
   // Teslimatlar (ana sayfa): ortadaki kart büyük, yanlar küçük ve soluk. Etkin noktanın dolma animasyonu
   // (--slide-duration) bitince sıradaki ortaya gelir; durmak .is-paused ile animasyonu dondurur, kaldığı yerden sürer.
-  // Fareyle üzerindeyken, klavye odağı içindeyken, ekranda değilken, sekme gizliyken, tam ekran açıkken ya da ziyaretçi
+  // Fare ortadaki kartın üzerindeyken, klavye odağı içindeyken, ekranda değilken, sekme gizliyken, tam ekran açıkken ya da ziyaretçi
   // durdurduysa durur. Yan karta tıklamak onu ortaya getirir, ortadakine tıklamak tam ekranı açar; telefonda yana
   // kaydırılır. "Hareketi azalt" açıksa animasyon olmadığından kendiliğinden dönmez.
   document.querySelectorAll("[data-coverflow]").forEach(function (root) {
@@ -289,6 +289,13 @@
     var count = cards.length;
     var current = 0;
     var state = { stopped: false, hover: false, focus: false, offscreen: true, dialog: false };
+    var mouse = false;
+
+    // Ortadaki kart değişince fare artık onun üzerinde olmayabilir (ya da yeni ortadakinin üzerindedir)
+    function syncHover() {
+      state.hover = mouse && cards[current].matches(":hover");
+      sync();
+    }
 
     function sync() {
       var paused = state.stopped || state.hover || state.focus || state.offscreen || state.dialog || document.hidden;
@@ -336,6 +343,7 @@
         dots[current].setAttribute("aria-current", "true");
       }
       layout();
+      syncHover();
     }
 
     layout();
@@ -382,9 +390,10 @@
       if (card) { state.dialog = true; sync(); } // ortadaki kart: tam ekran açılıyor
     }, true);
 
-    // Yalnız fare ile üzerine gelince dur (dokunmatikte "hover" kalıcı olmasın)
-    root.addEventListener("pointerenter", function (e) { if (e.pointerType === "mouse") { state.hover = true; sync(); } });
-    root.addEventListener("pointerleave", function (e) { if (e.pointerType === "mouse") { state.hover = false; sync(); } });
+    // Yalnız fare ortadaki kartın üzerindeyken dur (fotoğrafa bakılıyor). Bölüm sayfa genişliğinde olduğundan tamamında
+    // durursa kaydırıp bakan ziyaretçide hiç dönmüyor gibi görünür; dokunmatikte "hover" kalıcı olmasın diye yalnız fare.
+    stage.addEventListener("pointerover", function (e) { mouse = e.pointerType === "mouse"; syncHover(); });
+    stage.addEventListener("pointerleave", function () { mouse = false; syncHover(); });
     // Klavyeyle içinde gezinirken dur (fareyle tıklanan düğme odak alsa da döner)
     function syncFocus() {
       var focused = document.activeElement;
@@ -522,6 +531,99 @@
         if (el.name && el.value === "") el.disabled = true;
       });
     });
+  });
+
+  // Ana sayfa hızlı araması (_Intro): Model listesi seçili markanınkilere iner (marka seçilmeden pasif); boş alanlar
+  // adrese yazılmaz. Geri tuşuyla dönülünce (bfcache) gönderirken pasifleşen alanlar yeniden açılır.
+  document.querySelectorAll("[data-quick-search]").forEach(function (form) {
+    var brand = form.querySelector("[data-qs-brand]");
+    var series = form.querySelector("[data-qs-series]");
+    if (!brand || !series) return;
+    var placeholder = series.options[0];
+    var all = Array.prototype.slice.call(series.querySelectorAll("option[data-brand]"));
+
+    function sync(keep) {
+      var selected = keep ? series.value : "";
+      series.textContent = ""; // markaya göre gruplar (JS yokken) kalkar
+      series.appendChild(placeholder);
+      all.forEach(function (option) {
+        if (option.getAttribute("data-brand") === brand.value) series.appendChild(option);
+      });
+      series.value = all.some(function (o) { return o.value === selected && o.parentNode === series; }) ? selected : "";
+      series.disabled = !brand.value || series.options.length < 2;
+    }
+    brand.addEventListener("change", function () { sync(false); });
+    sync(true);
+    form.addEventListener("submit", function () {
+      Array.prototype.forEach.call(form.elements, function (el) {
+        if (el.name && el.value === "") el.disabled = true;
+      });
+    });
+    window.addEventListener("pageshow", function () {
+      brand.disabled = false;
+      sync(true);
+    });
+  });
+
+  // Ana sayfa araç kaydırıcısı (_Showcase): sekme bir listeyi gösterir (← → ile sekmeler arası geçilir); oklar etkin
+  // listeyi görünen kart sayısı kadar kaydırır, baştaki / sondaki ok pasifleşir, liste sığıyorsa oklar gizlenir.
+  // JS yoksa sekmeler ve oklar gizli kalır, listeler başlıklarıyla alt alta görünür.
+  document.querySelectorAll("[data-rails]").forEach(function (section) {
+    var tabs = Array.prototype.slice.call(section.querySelectorAll("[data-rail-tab]"));
+    var rails = Array.prototype.slice.call(section.querySelectorAll("[data-rail]"));
+    var tablist = section.querySelector("[data-rail-tabs]");
+    var arrows = section.querySelector("[data-rail-arrows]");
+    var prev = section.querySelector("[data-rail-prev]");
+    var next = section.querySelector("[data-rail-next]");
+    if (rails.length === 0 || !arrows) return;
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+    var current = 0;
+
+    function track() { return rails[current].querySelector("[data-rail-track]"); }
+    function syncArrows() {
+      var t = track();
+      arrows.hidden = t.scrollWidth <= t.clientWidth + 1;
+      prev.disabled = t.scrollLeft <= 1;
+      next.disabled = t.scrollLeft + t.clientWidth >= t.scrollWidth - 1;
+    }
+    function select(index, focus) {
+      current = index;
+      tabs.forEach(function (tab, i) {
+        var active = i === index;
+        tab.classList.toggle("is-active", active);
+        tab.setAttribute("aria-selected", active ? "true" : "false");
+        tab.tabIndex = active ? 0 : -1;
+        if (active && focus) tab.focus();
+      });
+      rails.forEach(function (rail, i) { rail.hidden = i !== index; });
+      syncArrows();
+    }
+    function step(direction) {
+      var t = track();
+      var item = t.querySelector(".rail-item");
+      var gap = parseFloat(window.getComputedStyle(t).columnGap) || 0;
+      var width = item ? item.getBoundingClientRect().width + gap : t.clientWidth;
+      var perView = Math.max(1, Math.floor(t.clientWidth / width));
+      t.scrollBy({ left: direction * width * perView, behavior: reduce.matches ? "auto" : "smooth" });
+    }
+
+    tabs.forEach(function (tab, index) {
+      tab.addEventListener("click", function () { select(index, false); });
+      tab.addEventListener("keydown", function (e) {
+        if (e.key === "ArrowRight") { e.preventDefault(); select((index + 1) % tabs.length, true); }
+        else if (e.key === "ArrowLeft") { e.preventDefault(); select((index - 1 + tabs.length) % tabs.length, true); }
+      });
+    });
+    rails.forEach(function (rail) {
+      rail.querySelector("[data-rail-track]").addEventListener("scroll", syncArrows, { passive: true });
+      var title = rail.querySelector("[data-rail-title]");
+      if (title) title.hidden = true; // sekmeler (ya da bölüm başlığı) adı zaten gösteriyor
+    });
+    prev.addEventListener("click", function () { step(-1); });
+    next.addEventListener("click", function () { step(1); });
+    window.addEventListener("resize", syncArrows);
+    if (tablist) tablist.hidden = false;
+    select(0, false);
   });
 
   // Konum haritası: Google Haritalar yalnız ziyaretçi "Haritayı göster"e basınca yüklenir (KVKK).

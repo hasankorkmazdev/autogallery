@@ -53,3 +53,5 @@ FatihTasci.Server/Storage/
 FatihTasci.Server/logs/
 # Panelin derlenmiş hali (npm run build ile üretilir)
 FatihTasci.Server/wwwroot/panel/
+# Yayin paketi (dotnet publish -o publish)
+/publish/

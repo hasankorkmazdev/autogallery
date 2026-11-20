@@ -34,4 +34,11 @@ public class UserEntity : BaseAuditableEntity<Guid>
 
     [Column(Order = 106)]
     public DateTime? LastLoginDate { get; set; }
+
+    /// <summary>
+    /// Sitede danışmanı olduğu ilanlarda görünen iletişim telefonu (kişinin kendi numarası, galeri telefonundan farklı
+    /// olabilir). Boşsa ilanda galeri telefonu kullanılır; cep telefonuysa WhatsApp da bu numaraya gider.
+    /// </summary>
+    [Column(Order = 107)]
+    public string Phone { get; set; }
 }

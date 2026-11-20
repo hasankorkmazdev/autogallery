@@ -1,4 +1,5 @@
 using FatihTasci.Core.Entity.Catalog;
+using FatihTasci.Core.Entity.Identity;
 using FatihTasci.Core.Entity.Inventory;
 using FatihTasci.Core.Enums;
 using FatihTasci.Core.Extensions.Data;
@@ -10,6 +11,7 @@ using FatihTasci.Core.RepositoryBase;
 using FatihTasci.Core.Service.Domains.Abstracts;
 using Ganss.Xss;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace FatihTasci.Core.Service.Domains;
 
@@ -30,9 +32,11 @@ public class VehicleService : DomainService, IVehicleService
     private readonly IRepository<FeatureEntity> _featureRepository;
     private readonly IRepository<CarModelEntity> _modelRepository;
     private readonly IRepository<ColorEntity> _colorRepository;
+    private readonly IRepository<UserEntity> _userRepository;
     private readonly IMediaStorage _storage;
+    private readonly ICurrentUserProvider _currentUserProvider;
 
-    public VehicleService(IUnitOfWork unitOfWork, IMediaStorage storage)
+    public VehicleService(IUnitOfWork unitOfWork, IMediaStorage storage, ICurrentUserProvider currentUserProvider)
     {
         _unitOfWork = unitOfWork;
         _vehicleRepository = unitOfWork.GetRepository<VehicleEntity>();
@@ -41,7 +45,9 @@ public class VehicleService : DomainService, IVehicleService
         _featureRepository = unitOfWork.GetRepository<FeatureEntity>();
         _modelRepository = unitOfWork.GetRepository<CarModelEntity>();
         _colorRepository = unitOfWork.GetRepository<ColorEntity>();
+        _userRepository = unitOfWork.GetRepository<UserEntity>();
         _storage = storage;
+        _currentUserProvider = currentUserProvider;
     }
 
     public static string BuildPublicUrl(string slug, int listingNo)
@@ -94,6 +100,7 @@ public class VehicleService : DomainService, IVehicleService
                 x.Status,
                 x.IsFeatured,
                 x.IsOpportunity,
+                AdvisorName = x.Advisor != null ? x.Advisor.Name + " " + x.Advisor.Surname : null,
                 x.CreateDate,
                 x.LastUpdateDate,
                 CoverPath = x.Media.Where(m => m.IsCover).Select(m => m.SmallPath).FirstOrDefault(),
@@ -124,6 +131,7 @@ public class VehicleService : DomainService, IVehicleService
                 Status = x.Status,
                 IsFeatured = x.IsFeatured,
                 IsOpportunity = x.IsOpportunity,
+                AdvisorName = x.AdvisorName,
                 CoverUrl = _storage.ToUrl(x.CoverPath),
                 PhotoCount = x.PhotoCount,
                 PublicUrl = BuildPublicUrl(x.Slug, x.ListingNo),
@@ -161,7 +169,9 @@ public class VehicleService : DomainService, IVehicleService
             CarModelId = request.CarModelId,
             Title = request.Title.Trim(),
             Status = VehicleStatus.Draft,
-            Slug = SlugHelper.ForVehicle(null, catalog.Series.Brand.Name, catalog.Name)
+            Slug = SlugHelper.ForVehicle(null, catalog.Series.Brand.Name, catalog.Name),
+            // Danışman varsayılan olarak aracı ekleyen kullanıcıdır; Fiyat adımında değiştirilir.
+            AdvisorId = _currentUserProvider.GetUserId()
         };
 
         _vehicleRepository.Insert(vehicle);
@@ -336,12 +346,14 @@ public class VehicleService : DomainService, IVehicleService
         if (vehicle.Status == VehicleStatus.Published && !(request.Price > 0))
             return Result<VehicleDetailModel>(null, "Yayındaki bir aracın fiyatı boş ya da 0 olamaz.", 400);
 
+        if (!await IsActiveAdvisorAsync(request.AdvisorId))
+            return Result<VehicleDetailModel>(null, "Seçilen danışman bulunamadı ya da pasif. Aktif bir kullanıcı seçin.", 400);
+
         vehicle.Price = request.Price;
         vehicle.CampaignPrice = request.CampaignPrice;
         vehicle.ShowPrice = request.ShowPrice;
         vehicle.Description = SanitizeDescription(request.Description);
-        vehicle.ContactName = string.IsNullOrWhiteSpace(request.ContactName) ? null : request.ContactName.Trim();
-        vehicle.ContactPhone = string.IsNullOrWhiteSpace(request.ContactPhone) ? null : request.ContactPhone.Trim();
+        vehicle.AdvisorId = request.AdvisorId;
         vehicle.IsFeatured = request.IsFeatured;
         vehicle.FeaturedOrder = request.FeaturedOrder;
         vehicle.IsOpportunity = request.IsOpportunity;
@@ -383,7 +395,7 @@ public class VehicleService : DomainService, IVehicleService
 
     /// <summary>
     /// Benzer ilandan kopyala: katalog, teknik bilgiler (km ve renkler hariç), durum ve donanım kopyalanır.
-    /// İlan yetkilisi de kopyalanır. Hasar, fotoğraf ve fiyat yeni araç için ayrıca girilir.
+    /// Danışman da kopyalanır. Hasar, fotoğraf ve fiyat yeni araç için ayrıca girilir.
     /// </summary>
     public async Task<ServiceResultModel<VehicleDetailModel>> CopyAsync(Guid id)
     {
@@ -415,8 +427,7 @@ public class VehicleService : DomainService, IVehicleService
             PlateOrigin = source.PlateOrigin,
             AcceptsTrade = source.AcceptsTrade,
             ShowPrice = source.ShowPrice,
-            ContactName = source.ContactName,
-            ContactPhone = source.ContactPhone
+            AdvisorId = source.AdvisorId
         };
         _vehicleRepository.Insert(copy);
         _vehicleFeatureRepository.Insert(source.Features.Select(x => new VehicleFeatureEntity { VehicleId = copy.Id, FeatureId = x.FeatureId }));
@@ -448,7 +459,8 @@ public class VehicleService : DomainService, IVehicleService
             Item("photos", "En az bir fotoğraf", photoCount > 0, true, 6),
             Item("cover", "Kapak fotoğrafı seçildi", hasCover, true, 6),
             Item("photos-recommended", $"En az {MinPhotoCountRecommended} fotoğraf (şu an {photoCount})", photoCount >= MinPhotoCountRecommended, false, 6),
-            Item("price", "Fiyat (0'dan büyük)", vehicle.Price > 0, true, 7)
+            Item("price", "Fiyat (0'dan büyük)", vehicle.Price > 0, true, 7),
+            Item("advisor", "Danışman (aktif kullanıcı)", await IsActiveAdvisorAsync(vehicle.AdvisorId), true, 7)
         };
 
         return new PublishCheckModel
@@ -456,6 +468,11 @@ public class VehicleService : DomainService, IVehicleService
             Items = items,
             CanPublish = items.Where(x => x.Blocking).All(x => x.Passed)
         };
+    }
+
+    private async Task<bool> IsActiveAdvisorAsync(Guid? advisorId)
+    {
+        return advisorId.HasValue && await _userRepository.ExistsAsync(x => x.Id == advisorId.Value && x.IsActive);
     }
 
     private static PublishCheckItemModel Item(string key, string label, bool passed, bool blocking, int step) => new()
@@ -467,18 +484,43 @@ public class VehicleService : DomainService, IVehicleService
         Step = step
     };
 
-    private static string SanitizeDescription(string html)
+    private static readonly string[] DescriptionTags =
+        ["p", "br", "strong", "b", "em", "i", "u", "ul", "ol", "li", "h3", "h4", "span"];
+
+    /// <summary>
+    /// Açıklama editörünün renk (tc-*) ve hizalama (ta-*) sınıfları. Satır içi style tutulmaz: vitrinin CSP'si
+    /// engeller. Panel rich-text-format.ts ve vitrin site.css ile aynıdır.
+    /// </summary>
+    private static readonly string[] DescriptionClasses =
+        ["tc-gold", "tc-red", "tc-blue", "tc-green", "tc-muted", "ta-center", "ta-right"];
+
+    private static readonly Regex EdgeEmptyParagraphs = new(
+        @"^(\s*<p( class=""[^""]*"")?>\s*(<br>)?\s*</p>)+|(\s*<p( class=""[^""]*"")?>\s*(<br>)?\s*</p>)+\s*$",
+        RegexOptions.Compiled);
+
+    /// <summary>
+    /// Açıklamada yalnız izinli etiketleri ve palet sınıflarını bırakır. Panel kaydı ve ilan seed'i (ListingSeeder) kullanır.
+    /// </summary>
+    public static string SanitizeDescription(string html)
     {
         if (string.IsNullOrWhiteSpace(html))
             return null;
 
         var sanitizer = new HtmlSanitizer();
         sanitizer.AllowedTags.Clear();
-        foreach (var tag in new[] { "p", "br", "strong", "b", "em", "i", "u", "ul", "ol", "li", "h3", "h4" })
+        foreach (var tag in DescriptionTags)
             sanitizer.AllowedTags.Add(tag);
         sanitizer.AllowedAttributes.Clear();
+        sanitizer.AllowedAttributes.Add("class");
+        // AllowedClasses boş olursa her sınıf geçer; listede olmayan sınıf silinir.
+        sanitizer.AllowedClasses.Clear();
+        foreach (var name in DescriptionClasses)
+            sanitizer.AllowedClasses.Add(name);
+        sanitizer.AllowedCssProperties.Clear();
 
-        return sanitizer.Sanitize(html.Trim());
+        // Baştaki ve sondaki boş paragraflar sitede boş satır olur, atılır; yalnız boş satırsa açıklama yoktur.
+        var clean = EdgeEmptyParagraphs.Replace(sanitizer.Sanitize(html.Trim()), "").Trim();
+        return clean.Length == 0 ? null : clean;
     }
 
     private async Task<CarModelEntity> LoadCatalogChainAsync(VehicleIdentityRequestModel request)
@@ -570,8 +612,7 @@ public class VehicleService : DomainService, IVehicleService
             CampaignPrice = x.CampaignPrice,
             ShowPrice = x.ShowPrice,
             Description = x.Description,
-            ContactName = x.ContactName,
-            ContactPhone = x.ContactPhone,
+            AdvisorId = x.AdvisorId,
             IsFeatured = x.IsFeatured,
             FeaturedOrder = x.FeaturedOrder,
             IsOpportunity = x.IsOpportunity,

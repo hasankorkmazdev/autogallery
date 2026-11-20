@@ -88,16 +88,27 @@ export interface UserListItem {
   name: string;
   surname: string;
   eMail: string;
+  /** Sitede danışmanı olduğu ilanlarda görünen iletişim telefonu */
+  phone: string | null;
   role: number;
   isActive: boolean;
   lastLoginDate: string | null;
   createDate: string;
 }
 
+/** Araca atanabilecek danışman (tüm kullanıcılar, pasifler dahil) */
+export interface Advisor {
+  id: string;
+  fullName: string;
+  phone: string | null;
+  isActive: boolean;
+}
+
 export interface SaveUserRequest {
   name: string;
   surname: string;
   eMail: string;
+  phone: string | null;
   role: number;
   isActive: boolean;
   /** Yalnız yeni kullanıcıda gönderilir */
@@ -179,6 +190,8 @@ export interface VehicleListItem {
   photoCount: number;
   isFeatured: boolean;
   isOpportunity: boolean;
+  /** Danışmanın adı soyadı; atanmamışsa null */
+  advisorName: string | null;
   publicUrl: string;
   createDate: string;
   lastUpdateDate: string | null;
@@ -242,8 +255,7 @@ export interface VehicleDetail {
   campaignPrice: number | null;
   showPrice: boolean;
   description: string | null;
-  contactName: string | null;
-  contactPhone: string | null;
+  advisorId: string | null;
   isFeatured: boolean;
   featuredOrder: number;
   isOpportunity: boolean;

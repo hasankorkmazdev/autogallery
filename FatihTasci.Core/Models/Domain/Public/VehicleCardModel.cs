@@ -16,6 +16,13 @@ public class VehicleCardModel
     public string CoverSmallUrl { get; set; }
     public string CoverLargeUrl { get; set; }
     public string CoverAlt { get; set; }
+
+    /// <summary>
+    /// Kart başlığı: marka (kalın) + model (Series), altında paket (CarModel). Title görsel alt metnidir.
+    /// </summary>
+    public string BrandName { get; set; }
+    public string SeriesName { get; set; }
+    public string ModelName { get; set; }
     public int? Year { get; set; }
     public int? Kilometer { get; set; }
     public string FuelName { get; set; }

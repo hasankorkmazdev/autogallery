@@ -1,64 +1,68 @@
 @model HomePageModel
+@*
+    Ana sayfa araç kaydırıcısı (girişin altında). Sekmeler: Vitrindekiler (panelde "Vitrinde öne çıkar" işaretliler vitrin
+    sırasıyla, eksikse en yeniler; PublicVehicleService.ShowcaseSize), Fırsat Araçları ("Fırsat aracı" işaretliler) ve
+    Yeni Gelenler (Vitrindekiler'de olmayan en yeniler). Her sekme yana kayan kart sırasıdır. Sekmeler ve oklar
+    site.js [data-rails]; JS yoksa sekme düğmeleri ve oklar gizli kalır, listeler başlıklarıyla alt alta görünür.
+*@
 @{
-    // Ana sayfada giriş videosunun (_Intro) altında: vitrindeki araçlardan mozaik (en çok 5; bkz. PublicVehicleService.GetHomeAsync).
-    // Masaüstünde 1 büyük + 4 küçük karo bir ekranı doldurur; mobilde büyük karo üstte, diğerleri 2×2.
-    var items = Model.Showcase;
+    var tabs = new List<(string Id, string Name, List<VehicleCardModel> Items)>
+    {
+        ("vitrin", "Vitrindekiler", Model.Showcase),
+        ("firsat", "Fırsat Araçları", Model.Opportunities),
+        ("yeni", "Yeni Gelenler", Model.Latest)
+    }.Where(t => t.Items.Count > 0).ToList();
 }
-<section class="showcase" id="vitrin" aria-labelledby="showcase-title">
+<section class="section rails" id="vitrin" data-rails aria-labelledby="rails-title">
     <div class="container">
-        <div class="showcase-head">
-            <h2 id="showcase-title" class="showcase-title">Vitrindeki araçlar</h2>
-            <a class="showcase-all" href="/ilanlar">Tüm ilanlar <span class="muted">· @Model.ListingCount araç</span> <span aria-hidden="true">→</span></a>
+        <div class="section-head">
+            <h2 id="rails-title" class="section-title">Öne çıkan araçlar</h2>
+            <div class="section-tools">
+                <a class="link-more" href="/ilanlar">Tüm ilanlar <span class="muted">(@Model.ListingCount)</span> <span aria-hidden="true">›</span></a>
+                @if (tabs.Count > 0)
+                {
+                    <div class="rail-arrows" data-rail-arrows hidden>
+                        <button type="button" class="icon-btn" data-rail-prev aria-label="Önceki araçlar">←</button>
+                        <button type="button" class="icon-btn" data-rail-next aria-label="Sonraki araçlar">→</button>
+                    </div>
+                }
+            </div>
         </div>
 
-        @if (items.Count == 0)
+        @if (tabs.Count == 0)
         {
             <p class="muted">Şu anda yayında araç bulunmuyor.</p>
         }
         else
         {
-            <div class="mosaic mosaic-@items.Count">
-                @for (var i = 0; i < items.Count; i++)
-                {
-                    var item = items[i];
-                    var lead = i == 0;
-                    var badge = SiteFormat.StatusBadge(item.Status);
-                    var campaign = SiteFormat.HasCampaign(item.Price, item.CampaignPrice, item.ShowPrice);
-                    var meta = string.Join(" · ", new[] { item.Year?.ToString(), item.Kilometer.HasValue ? SiteFormat.Km(item.Kilometer) : null, item.TransmissionName }
-                        .Where(x => !string.IsNullOrEmpty(x)));
-
-                    <a class="mosaic-tile @(lead ? "mosaic-lead" : null)" href="@item.Url">
-                        @if (item.CoverUrl != null)
+            @if (tabs.Count > 1)
+            {
+                <div class="tabs" role="tablist" aria-label="Araç listeleri" data-rail-tabs hidden>
+                    @for (var i = 0; i < tabs.Count; i++)
+                    {
+                        var tab = tabs[i];
+                        <button type="button" class="tab @(i == 0 ? "is-active" : null)" role="tab" id="rail-tab-@tab.Id"
+                                aria-controls="rail-@tab.Id" aria-selected="@(i == 0 ? "true" : "false")" tabindex="@(i == 0 ? "0" : "-1")"
+                                data-rail-tab>@tab.Name</button>
+                    }
+                </div>
+            }
+            @foreach (var tab in tabs)
+            {
+                @* Razor null değerli özniteliği yazmaz: tek liste varsa sekme rolü yok *@
+                <div class="rail" id="rail-@tab.Id" data-rail role="@(tabs.Count > 1 ? "tabpanel" : null)"
+                     aria-labelledby="@(tabs.Count > 1 ? $"rail-tab-{tab.Id}" : null)">
+                    <h3 class="rail-title" data-rail-title>@tab.Name</h3>
+                    <div class="rail-track" data-rail-track>
+                        @foreach (var item in tab.Items)
                         {
-                            @* Sayfanın en büyük görseli (LCP) giriş posteri; mozaik onun hemen altında, hemen yüklenir *@
-                            <img src="@item.CoverUrl"
-                                 srcset="@SiteFormat.SrcSet(item.CoverSmallUrl, item.CoverUrl, item.CoverLargeUrl)"
-                                 sizes="@(lead ? "(min-width: 960px) 50vw, 100vw" : "(min-width: 960px) 25vw, 50vw")"
-                                 alt="@item.CoverAlt" width="1280" height="853" decoding="async" />
+                            <div class="rail-item">
+                                <partial name="_VehicleCard" model="item" />
+                            </div>
                         }
-                        else
-                        {
-                            <span class="mosaic-placeholder">Fotoğraf yok</span>
-                        }
-                        @if (badge != null)
-                        {
-                            <span class="badge badge-@item.Status.ToString().ToLowerInvariant()">@badge</span>
-                        }
-                        @if (campaign && item.Status != VehicleStatus.Sold)
-                        {
-                            <span class="badge badge-campaign">Kampanya</span>
-                        }
-                        <span class="mosaic-caption">
-                            <span class="mosaic-name">@item.Title</span>
-                            @if (meta.Length > 0)
-                            {
-                                <span class="mosaic-meta">@meta</span>
-                            }
-                            <span class="mosaic-price">@SiteFormat.PriceTag(item.Price, item.CampaignPrice, item.ShowPrice)</span>
-                        </span>
-                    </a>
-                }
-            </div>
+                    </div>
+                </div>
+            }
         }
     </div>
 </section>

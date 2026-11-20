@@ -52,8 +52,7 @@ public class VehicleDetailModel
     public decimal? CampaignPrice { get; set; }
     public bool ShowPrice { get; set; }
     public string Description { get; set; }
-    public string ContactName { get; set; }
-    public string ContactPhone { get; set; }
+    public Guid? AdvisorId { get; set; }
     public bool IsFeatured { get; set; }
     public int FeaturedOrder { get; set; }
     public bool IsOpportunity { get; set; }

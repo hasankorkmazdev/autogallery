@@ -1,5 +1,6 @@
 using FatihTasci.Core.Entity.Base;
 using FatihTasci.Core.Entity.Catalog;
+using FatihTasci.Core.Entity.Identity;
 using FatihTasci.Core.Enums;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -81,20 +82,17 @@ public class VehicleEntity : BaseAuditableEntity<Guid>
     public string Description { get; set; }
 
     /// <summary>
-    /// İlan yetkilisi (satış danışmanı). Boşsa sitede yalnız galeri telefonu görünür.
+    /// Aracın satış danışmanı (panel kullanıcısı). Yeni araçta aracı ekleyen kullanıcıdır, Fiyat adımında değişir.
+    /// Sitede ilanın iletişim kutusunda adı görünür; "Ara" danışmanın telefonunu arar, cep telefonuysa WhatsApp da ona
+    /// gider. Danışmanın telefonu yoksa ya da danışman pasifse galerinin numaraları kullanılır.
     /// </summary>
-    public string ContactName { get; set; }
-
-    /// <summary>
-    /// İlanın iletişim telefonu. Doluysa sitede "Ara" bu numarayı arar; cep telefonuysa WhatsApp da bu numaraya gider.
-    /// </summary>
-    public string ContactPhone { get; set; }
+    public Guid? AdvisorId { get; set; }
 
     public bool IsFeatured { get; set; }
     public int FeaturedOrder { get; set; }
 
     /// <summary>
-    /// Fırsat aracı: ana sayfadaki "Fırsat Araçları" şeridinde gösterilir (panelde Fiyat adımında işaretlenir).
+    /// Fırsat aracı: ana sayfadaki araç kaydırıcısının "Fırsat Araçları" sekmesinde gösterilir (panelde Fiyat adımında işaretlenir).
     /// </summary>
     public bool IsOpportunity { get; set; }
 
@@ -106,6 +104,7 @@ public class VehicleEntity : BaseAuditableEntity<Guid>
     public virtual SeriesEntity Series { get; set; }
     public virtual CarModelEntity CarModel { get; set; }
     public virtual ColorEntity ExteriorColor { get; set; }
+    public virtual UserEntity Advisor { get; set; }
 
     public virtual ICollection<VehicleBodyPartEntity> BodyParts { get; set; } = new List<VehicleBodyPartEntity>();
     public virtual ICollection<VehicleFeatureEntity> Features { get; set; } = new List<VehicleFeatureEntity>();

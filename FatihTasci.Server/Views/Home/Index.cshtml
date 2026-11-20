@@ -17,16 +17,17 @@
         ["url"] = baseUrl + "/"
     })
 }
-<partial name="_Intro" model="settings" />
+<partial name="_Intro" model="Model" />
 <partial name="_Showcase" model="Model" />
-<partial name="_OpportunityTicker" model="Model.Opportunities" />
 
 @if (Model.Brands.Count > 0)
 {
-    <section class="section">
+    <section class="section" aria-labelledby="brands-title">
         <div class="container">
-            <h2 class="section-title">Markalar</h2>
-            <partial name="_BrandStrip" model="Model.Brands" />
+            <div class="section-head">
+                <h2 id="brands-title" class="section-title">Markalar</h2>
+            </div>
+            <partial name="_BrandStrip" model="Model.Brands" view-data='new ViewDataDictionary(ViewData) { ["BrandVariant"] = "tiles" }' />
         </div>
     </section>
 }
@@ -35,24 +36,6 @@
 <partial name="_Stats" model="content.Stats" />
 
 <partial name="_Atmosphere" model="Model.Scenes" />
-
-@if (Model.Latest.Count > 0)
-{
-    <section class="section">
-        <div class="container">
-            <div class="section-head">
-                <h2 class="section-title">Yeni Gelenler</h2>
-                <a href="/ilanlar">Tümünü gör</a>
-            </div>
-            <div class="grid">
-                @foreach (var item in Model.Latest)
-                {
-                    <partial name="_VehicleCard" model="item" />
-                }
-            </div>
-        </div>
-    </section>
-}
 
 <partial name="_Deliveries" model="Model.Deliveries" />
 

@@ -28,6 +28,11 @@ public interface IAccountService : IDomainService
 public interface IUserService : IDomainService
 {
     Task<ServiceResultModel<List<UserListItemModel>>> GetListAsync();
+
+    /// <summary>
+    /// Araca danışman olarak atanabilecek kullanıcılar (tüm roller, pasifler dahil)
+    /// </summary>
+    Task<ServiceResultModel<List<AdvisorModel>>> GetAdvisorsAsync();
     Task<ServiceResultModel<UserListItemModel>> CreateAsync(SaveUserRequestModel request);
     Task<ServiceResultModel<UserListItemModel>> UpdateAsync(Guid id, SaveUserRequestModel request);
     Task<ServiceResultModel> ResetPasswordAsync(Guid id, ResetUserPasswordRequestModel request);

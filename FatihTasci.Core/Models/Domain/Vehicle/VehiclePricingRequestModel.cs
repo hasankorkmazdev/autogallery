@@ -22,20 +22,15 @@ public class VehiclePricingRequestModel : IRequestModel
     public string Description { get; set; }
 
     /// <summary>
-    /// İlan yetkilisi (isteğe bağlı). Girilirse telefon da girilmelidir.
+    /// Aracın satış danışmanı: aktif bir panel kullanıcısı (zorunlu). Sitede "Ara" ve WhatsApp onun telefonuna gider.
     /// </summary>
-    public string ContactName { get; set; }
-
-    /// <summary>
-    /// İlanın iletişim telefonu (isteğe bağlı). Boşsa galeri telefonu kullanılır.
-    /// </summary>
-    public string ContactPhone { get; set; }
+    public Guid? AdvisorId { get; set; }
 
     public bool IsFeatured { get; set; }
     public int FeaturedOrder { get; set; }
 
     /// <summary>
-    /// Ana sayfadaki "Fırsat Araçları" şeridinde gösterilir.
+    /// Ana sayfadaki araç kaydırıcısının "Fırsat Araçları" sekmesinde gösterilir.
     /// </summary>
     public bool IsOpportunity { get; set; }
 }
@@ -54,16 +49,12 @@ public class VehiclePricingRequestModelValidator : AbstractValidator<VehiclePric
                 .Must((x, campaign) => x.Price > 0 && campaign < x.Price)
                 .WithMessage("Kampanyalı fiyat, normal fiyattan düşük olmalıdır.");
         });
+        // HTML uzunluğu (biçimlendirme dahil); panelde schemas.ts ile aynı.
         RuleFor(x => x.Description)
-            .MaximumLength(10000).WithMessage("Açıklama en fazla 10.000 karakter olabilir.");
-        RuleFor(x => x.ContactName)
-            .MaximumLength(80).WithMessage("Yetkili adı en fazla 80 karakter olabilir.");
-        RuleFor(x => x.ContactPhone)
-            .Matches(@"^[0-9 +()\-]{10,20}$").When(x => !string.IsNullOrWhiteSpace(x.ContactPhone))
-            .WithMessage("Geçerli bir telefon numarası girin.");
-        RuleFor(x => x.ContactPhone)
-            .NotEmpty().When(x => !string.IsNullOrWhiteSpace(x.ContactName))
-            .WithMessage("Yetkili adı girildiyse telefon da girilmelidir.");
+            .MaximumLength(20000).WithMessage("Açıklama biçimlendirmesiyle birlikte en fazla 20.000 karakter olabilir.");
+        // Danışmanın var ve aktif olduğu VehicleService'te kontrol edilir.
+        RuleFor(x => x.AdvisorId)
+            .NotEmpty().WithMessage("Danışman seçin.");
         RuleFor(x => x.FeaturedOrder)
             .GreaterThanOrEqualTo(0).WithMessage("Vitrin sırası 0 ya da daha büyük olmalıdır.");
     }

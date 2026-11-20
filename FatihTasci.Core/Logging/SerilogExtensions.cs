@@ -1,3 +1,4 @@
+using FatihTasci.Core.Providers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 using Serilog;
@@ -8,9 +9,10 @@ namespace FatihTasci.Core.Logging;
 
 /// <summary>
 /// Server için Serilog kurulumu (Signage'daki AddGoraSerilog'un sadeleştirilmiş hali).
-///   logs/app/app-*.log       -> tüm uygulama kayıtları (compact JSON)
-///   logs/errors/error-*.log  -> yalnızca Error ve üzeri
-/// Konsol renkli, okunabilir metin yazar.
+///   Storage/private/logs/app/app-*.log       -> tüm uygulama kayıtları (compact JSON)
+///   Storage/private/logs/errors/error-*.log  -> yalnızca Error ve üzeri
+/// Loglar Storage altındadır: paylaşımlı barındırmada uygulama havuzuna yalnız Storage/ için yazma izni verilir,
+/// site köküne yazılamaz. private/ dışarıya sunulmaz. Konsol renkli, okunabilir metin yazar.
 /// </summary>
 public static class SerilogExtensions
 {
@@ -22,7 +24,7 @@ public static class SerilogExtensions
 
     public static WebApplicationBuilder AddAppSerilog(this WebApplicationBuilder builder)
     {
-        var logRoot = Path.Combine(builder.Environment.ContentRootPath, "logs");
+        var logRoot = Path.Combine(LocalMediaStorage.ResolveRoot(builder.Configuration, builder.Environment.ContentRootPath), "private", "logs");
 
         builder.Host.UseSerilog((context, services, cfg) => cfg
             .ReadFrom.Configuration(context.Configuration)

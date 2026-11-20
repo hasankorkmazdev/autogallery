@@ -11,6 +11,7 @@ public class UserListItemModel
     public string Name { get; set; }
     public string Surname { get; set; }
     public string EMail { get; set; }
+    public string Phone { get; set; }
     public UserRole Role { get; set; }
     public bool IsActive { get; set; }
     public DateTime? LastLoginDate { get; set; }

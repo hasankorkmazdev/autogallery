@@ -12,6 +12,12 @@ public class SaveUserRequestModel : IRequestModel
     public string Name { get; set; }
     public string Surname { get; set; }
     public string EMail { get; set; }
+
+    /// <summary>
+    /// Sitede danışmanı olduğu ilanlarda görünen iletişim telefonu (isteğe bağlı)
+    /// </summary>
+    public string Phone { get; set; }
+
     public UserRole Role { get; set; } = UserRole.Staff;
     public bool IsActive { get; set; } = true;
 
@@ -35,6 +41,9 @@ public class SaveUserRequestModelValidator : AbstractValidator<SaveUserRequestMo
             .NotEmpty().WithMessage("E-posta zorunludur.")
             .EmailAddress().WithMessage("Geçerli bir e-posta adresi girin.")
             .MaximumLength(150).WithMessage("E-posta en fazla 150 karakter olabilir.");
+        RuleFor(x => x.Phone)
+            .Matches(@"^[0-9 +()\-]{10,20}$").When(x => !string.IsNullOrWhiteSpace(x.Phone))
+            .WithMessage("Geçerli bir telefon numarası girin.");
         RuleFor(x => x.Role)
             .IsInEnum().WithMessage("Geçerli bir rol seçin.");
         RuleFor(x => x.Password)

@@ -1,15 +1,24 @@
 @model VehicleCardModel
+@*
+    Araç kartı (ana sayfa kaydırıcısı, ilanlar, benzer araçlar). Fotoğraf kartın içinde yuvarlak köşeli; altında
+    marka (kalın) + model, paket, 2×2 bilgi kutucuğu (yıl, km, yakıt, vites) ve fiyat.
+*@
 @{
     var badge = SiteFormat.StatusBadge(Model.Status);
     // Satılmış araçta kampanya gösterilmez.
     var campaign = Model.Status != VehicleStatus.Sold && SiteFormat.HasCampaign(Model.Price, Model.CampaignPrice, Model.ShowPrice);
+    var specs = new[] { Model.Year?.ToString(), Model.Kilometer.HasValue ? SiteFormat.Km(Model.Kilometer) : null, Model.FuelName, Model.TransmissionName }
+        .Where(x => !string.IsNullOrEmpty(x)).ToList();
+    var hasCatalogName = !string.IsNullOrEmpty(Model.BrandName);
 }
 <article class="card">
     <a class="card-link" href="@Model.Url">
         <div class="card-media">
             @if (Model.CoverUrl != null)
             {
-                <img src="@Model.CoverUrl" alt="@Model.CoverAlt" loading="lazy" width="1280" height="853" />
+                <img src="@Model.CoverUrl" srcset="@SiteFormat.SrcSet(Model.CoverSmallUrl, Model.CoverUrl, null)"
+                     sizes="(min-width: 1200px) 300px, (min-width: 640px) 45vw, 85vw"
+                     alt="@Model.CoverAlt" loading="lazy" decoding="async" width="1280" height="853" />
             }
             else
             {
@@ -25,8 +34,24 @@
             }
         </div>
         <div class="card-body">
-            <h3 class="card-title">@Model.Title</h3>
-            <p class="card-meta">@Model.Year · @SiteFormat.Km(Model.Kilometer) · @Model.FuelName · @Model.TransmissionName</p>
+            @if (hasCatalogName)
+            {
+                <h3 class="card-title"><strong>@Model.BrandName</strong> @Model.SeriesName</h3>
+                <p class="card-sub">@Model.ModelName</p>
+            }
+            else
+            {
+                <h3 class="card-title">@Model.Title</h3>
+            }
+            @if (specs.Count > 0)
+            {
+                <ul class="card-specs">
+                    @foreach (var spec in specs)
+                    {
+                        <li>@spec</li>
+                    }
+                </ul>
+            }
             <p class="card-price">@SiteFormat.PriceTag(Model.Price, Model.CampaignPrice, Model.ShowPrice)</p>
         </div>
     </a>
